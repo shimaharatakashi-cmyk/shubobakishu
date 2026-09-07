@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>血統 × 騎手査定 出馬表 (完全版 v3)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif; background-color: #f4f7f6; color: #333; padding: 15px; max-width: 800px; margin: auto; }
+        h1 { font-size: 1.3em; color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; margin-top: 5px; }
+        .input-area { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        textarea { width: 100%; height: 80px; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; resize: vertical; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        button { padding: 12px; font-size: 15px; font-weight: bold; border-radius: 4px; cursor: pointer; border: none; transition: 0.2s; color: white; display: flex; align-items: center; justify-content: center; gap: 5px;}
+        .btn-analyze { background: #e74c3c; flex: 1; min-width: 200px;}
+        .btn-analyze:active { background: #c0392b; transform: scale(0.98);}
+        .btn-reset { background: #7f8c8d; flex: 0.3; min-width: 80px;}
+        .btn-reset:active { background: #95a5a6; transform: scale(0.98);}
+        
+        .action-btns { display: none; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .btn-copy { background: #3498db; flex: 1; width: 100%; }
+        .btn-copy:active { background: #2980b9; transform: scale(0.98);}
+
+        .history-container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; display: none; }
+        .history-header { font-size: 0.95em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        .history-clear-all { color: #e74c3c; font-size: 0.85em; cursor: pointer; font-weight: normal; text-decoration: underline; }
+        .history-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+        .history-item { background: #ecf0f1; border: 1px solid #bdc3c7; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 0.9em; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .history-item-title { font-weight: bold; color: #2980b9; cursor: pointer; }
+        .history-item-title:hover { text-decoration: underline; }
+        .history-delete { color: #e74c3c; cursor: pointer; font-weight: bold; font-size: 1.1em; padding: 0 4px; }
+
+        .race-header-box { text-align: center; margin-bottom: 15px; padding: 12px; background: #fff; border-radius: 8px; border-left: 5px solid #2980b9; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .race-title { font-size: 1.2em; font-weight: bold; color: #2c3e50; margin-bottom: 3px; line-height: 1.4;}
+        .race-course { font-size: 0.9em; color: #555; }
+        
+        .race-board { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }
+        .race-row { display: flex; align-items: stretch; padding: 12px 10px; border-bottom: 1px solid #eee; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .race-row:active { background: #f0f0f0; }
+        
+        .frame-box { font-weight: bold; border-radius: 4px; width: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.9em; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); flex-shrink: 0;}
+        .frame-1 { background: #ffffff; color: #333; border: 1px solid #ccc; }
+        .frame-2 { background: #333333; color: #fff; border: 1px solid #333; }
+        .frame-3 { background: #e74c3c; color: #fff; border: 1px solid #c0392b; }
+        .frame-4 { background: #3498db; color: #fff; border: 1px solid #2980b9; }
+        .frame-5 { background: #f1c40f; color: #333; border: 1px solid #f39c12; }
+        .frame-6 { background: #2ecc71; color: #fff; border: 1px solid #27ae60; }
+        .frame-7 { background: #e67e22; color: #fff; border: 1px solid #d35400; }
+        .frame-8 { background: #ff9ff3; color: #333; border: 1px solid #f368e0; }
+        .frame-unknown { background: #ecf0f1; color: #7f8c8d; border: 1px solid #bdc3c7; }
+
+        .horse-content { flex: 1; padding-left: 10px; display: flex; flex-direction: column; justify-content: center;}
+        .horse-main-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 5px;}
+        .horse-name-area { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;}
+        .horse-name { font-size: 1.15em; font-weight: bold; color: #2980b9; text-decoration: underline; text-decoration-color: #bdc3c7; text-underline-offset: 3px; }
+        .odds-info { font-size: 0.8em; color: #7f8c8d; }
+        .odds-hot { font-size: 0.85em; color: #e74c3c; font-weight: bold; background: #fadbd8; padding: 2px 6px; border-radius: 4px; }
+        .jockey-tag { font-weight: bold; font-size: 0.85em; color: #2c3e50; background: #ecf0f1; padding: 4px 8px; border-radius: 4px; border: 1px solid #bdc3c7; white-space: nowrap;}
+        .pedigree-mini { font-size: 0.8em; color: #7f8c8d; }
+        .row-expand-icon { font-size: 0.8em; color: #95a5a6; display: flex; align-items: center; margin-left: 5px; }
+        
+        .accordion-content { display: none; padding: 15px; background: #fafbfc; border-bottom: 3px solid #2c3e50; }
+        .accordion-content.active { display: block; animation: fadeIn 0.3s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .charts-container { display: flex; flex-direction: row; gap: 10px; justify-content: center; }
+        .chart-box { flex: 1; min-width: 140px; text-align: center; }
+        .chart-title { font-weight: bold; color: #555; margin-bottom: 0px; font-size: 0.8em; }
+        
+        .commentary-box { margin-top: 15px; font-size: 0.85em; line-height: 1.6; background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #eee;}
+        .commentary-box span.tag { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; margin-right: 5px; display: inline-block;}
+        .commentary-box span.tag.blue { background: #3498db; }
+        
+        #capture-area { background: #f4f7f6; padding: 10px 0; }
+        .toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; z-index: 1; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { visibility: visible; opacity: 1; }
+
+        @media (max-width: 500px) {
+            .charts-container { flex-direction: column; align-items: center; }
+            .chart-box { width: 90%; max-width: 250px; }
+            .jockey-tag { font-size: 0.8em; padding: 3px 6px; }
+            .horse-name { font-size: 1.05em; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>血統 × 騎手査定 出馬表 (完全版 v3)</h1>
+    
+    <div id="history-section" class="history-container">
+        <div class="history-header">
+            <span>📂 保存済みのレース (タップで復元)</span>
+            <span class="history-clear-all" onclick="clearAllHistory()">全て削除</span>
+        </div>
+        <ul id="history-list" class="history-list"></ul>
+    </div>
+
+    <div class="input-area" id="input-section">
+        <textarea id="input-text" placeholder="ここにJRA公式サイト等の出馬票テキストを貼り付けてください..."></textarea>
+        <div class="btn-group">
+            <button class="btn-analyze" onclick="analyzeData(true)">出馬表を作成する</button>
+            <button class="btn-reset" onclick="resetData()">クリア</button>
+        </div>
+    </div>
+    
+    <div class="action-btns" id="action-btns">
+        <button class="btn-copy" onclick="copyToClipboard()">📝 テキストをコピーしてメモに貼る</button>
+    </div>
+
+    <div id="capture-area">
+        <div id="result-area"></div>
+    </div>
+    
+    <div id="toast" class="toast">テキストをコピーしました！</div>
+
+    <script>
+// ==========================================
+// 【完全版】査定マスターデータ（全900頭超・全騎手）
+// ==========================================
+const sireDict = {
+"キズナ": { val: [3, 4, 5, 3, 4], comment: "重厚なパワー。タフな馬場やダートで輝く底力。" },
+    "エピファネイア": { val: [4, 4, 3, 4, 2], comment: "爆発力は現役屈指だが、気性の危うさも同居するロマン枠。" },
+    "ロードカナロア": { val: [5, 2, 3, 4, 4], comment: "言わずと知れた絶対的スピード。完成度が高く短距離で盤石。" },
+    "キタサンブラック": { val: [4, 5, 4, 3, 4], comment: "無尽蔵のスタミナと豊かな成長力。王道の持続力勝負。" },
+    "サートゥルナーリア": { val: [4, 3, 3, 5, 3], comment: "究極の瞬発力とキレ。気性面に課題もポテンシャルは一級。" },
+    "ドレフォン": { val: [4, 2, 4, 3, 4], comment: "米国ダートのスピード。芝・ダート問わず前向きな走り。" },
+    "モーリス": { val: [4, 4, 5, 3, 3], comment: "古馬になってからの成長力とマイル〜中距離を押し切るパワー。" },
+    "ルヴァンスレーヴ": { val: [3, 4, 5, 3, 4], comment: "ダート中距離での圧倒的パフォーマンス。強靭な骨格とパワー。" },
+    "レイデオロ": { val: [3, 4, 4, 4, 3], comment: "ダービー馬らしい王道の末脚。パワーも兼ね備える。" },
+    "ナダル": { val: [4, 3, 5, 2, 3], comment: "米国ダートの巨漢。圧倒的なスピードとパワーで押し切る。" },
+    "シルバーステート": { val: [4, 3, 4, 4, 3], comment: "幻のダービー馬。高い身体能力と豊かなスピード。" },
+    "リオンディーズ": { val: [4, 3, 4, 4, 2], comment: "強烈な前進気勢。折り合えばG1級の末脚を繰り出す。" },
+    "コントレイル": { val: [4, 4, 3, 5, 4], comment: "無敗の三冠馬。ディープ譲りのしなやかさと究極の瞬発力。" },
+    "モズアスコット": { val: [5, 2, 4, 3, 3], comment: "芝ダート両刀のスピード。マイル以下での絶対的な速力。" },
+    "リアルスティール": { val: [4, 4, 3, 4, 4], comment: "国内外で活躍。立ち回りの上手さと一瞬のキレ。" },
+    "サトノダイヤモンド": { val: [3, 5, 3, 4, 4], comment: "長距離適性と優雅な走り。バテない末脚が武器。" },
+    "ブリックスアンドモルタル": { val: [4, 4, 4, 3, 3], comment: "米国の芝最強馬。タフな馬場もこなす万能性。" },
+    "アドマイヤマーズ": { val: [4, 3, 4, 3, 4], comment: "マイル戦での無類の勝負根性。パワーとスピードの融合。" },
+    "ドゥラメンテ": { val: [4, 4, 3, 5, 2], comment: "荒々しい気性と引き換えの爆発的な推進力。" },
+    "シニスターミニスター": { val: [3, 3, 5, 2, 4], comment: "日本のダート大御所。スピードと粘り強さで砂を被らず。" },
+    "ミッキーアイル": { val: [5, 2, 3, 3, 3], comment: "逃げてナンボの絶対スピード。ディープ系随一の快速。" },
+    "クリソベリル": { val: [3, 4, 5, 3, 4], comment: "ダート界の怪物。圧倒的な馬格から繰り出すパワー。" },
+    "オルフェーヴル": { val: [4, 5, 4, 4, 2], comment: "破天荒な三冠馬。機嫌次第で全てを粉砕するスタミナとキレ。" },
+    "パイロ": { val: [4, 2, 5, 2, 3], comment: "ダート短距離で無類の強さ。圧倒的なテンのスピード。" },
+    "マインドユアビスケッツ": { val: [4, 3, 4, 3, 4], comment: "芝ダート兼用のスピード。米国産らしい前向きさ。" },
+    "シスキン": { val: [5, 2, 3, 4, 3], comment: "欧州の快速マイラー。テンの速さとキレ。" },
+    "サンダースノー": { val: [3, 4, 4, 3, 4], comment: "ドバイWC連覇のタフネス。しぶとい持続力。" },
+    "カリフォルニアクローム": { val: [4, 4, 4, 3, 4], comment: "米国の英雄。芝・ダート問わない高い総合力。" },
+    "ゴールドシップ": { val: [2, 5, 5, 2, 1], comment: "気分次第。ヤル気になれば全馬を撫で斬る異次元のスタミナ。" },
+    "デクラレーションオブウォー": { val: [4, 3, 4, 3, 3], comment: "欧州のパワーマイラー。タフな馬場への適性。" },
+    "アルアイン": { val: [3, 4, 4, 3, 4], comment: "機動力と持続力。皐月賞馬らしい立ち回りの上手さ。" },
+    "タワーオブロンドン": { val: [5, 2, 4, 4, 3], comment: "強烈なスプリント能力。馬群を割るパワーとスピード。" },
+    "ゴールドドリーム": { val: [3, 4, 5, 3, 4], comment: "ダートG1の常連。中距離での安定したパワーと末脚。" },
+    "ベンバトル": { val: [4, 4, 4, 3, 4], comment: "ドバイターフ勝者。芝・ダート二刀流のタフネス。" },
+    "マジェスティックウォリアー": { val: [3, 3, 5, 2, 3], comment: "ダートで輝く圧倒的パワー。砂の力勝負に強い。" },
+    "ニューイヤーズデイ": { val: [4, 3, 4, 3, 3], comment: "米ダートのスピード。前傾ラップでしぶとい。" },
+    "スワーヴリチャード": { val: [3, 4, 4, 4, 3], comment: "左回りの鬼。ハーツクライ譲りの持続力とキレ。" },
+    "イスラボニータ": { val: [4, 3, 3, 4, 4], comment: "美しいフットワーク。マイル〜中距離での立ち回りの巧さ。" },
+    "ビッグアーサー": { val: [5, 1, 4, 3, 3], comment: "サクラバクシンオーの後継。絶対的なスプリント能力。" },
+    "ルーラーシップ": { val: [3, 4, 4, 3, 3], comment: "中長距離の持続力とスタミナ。長く良い脚を使う。" },
+    "ディスクリートキャット": { val: [4, 2, 4, 3, 3], comment: "ダート短距離のスピード。芝でも前向きさを発揮。" },
+    "ヘニーヒューズ": { val: [5, 2, 4, 2, 4], comment: "ダート短距離の王様。テンの速さと完成度の高さ。" },
+    "フィエールマン": { val: [3, 5, 3, 4, 3], comment: "長距離戦での圧倒的キレ味。ディープ譲りの末脚。" },
+    "ダノンレジェンド": { val: [5, 1, 4, 2, 3], comment: "ダート短距離特化の強烈なスピード。テンから飛ばす。" },
+    "ミスターメロディ": { val: [5, 2, 4, 3, 3], comment: "芝・ダート兼用のスプリンター。パワーのあるスピード。" },
+    "ホッコータルマエ": { val: [3, 5, 5, 2, 4], comment: "ダート中長距離の王者。バテないスタミナと精神力。" },
+    "ダノンプレミアム": { val: [4, 3, 4, 4, 4], comment: "完成度の高いスピードと立ち回り。先行抜け出しの美学。" },
+    "ジャスタウェイ": { val: [4, 4, 4, 4, 3], comment: "世界一のレーティング。覚醒後の圧倒的な持続力とキレ。" },
+    "ハービンジャー": { val: [3, 5, 4, 3, 4], comment: "洋芝・重馬場の鬼。タフな馬場で輝く欧州のスタミナ。" },
+    "インディチャンプ": { val: [5, 2, 3, 4, 4], comment: "春秋マイル王。一瞬のキレと機動力の高さ。" },
+    "サトノアラジン": { val: [4, 3, 3, 5, 3], comment: "ディープ譲りの極上のキレ。大外一気が似合う。" },
+    "グレーターロンドン": { val: [4, 3, 3, 5, 2], comment: "強烈な末脚。体質さえまともならG1級だった素質。" },
+    "ミスチヴィアスアレックス": { val: [5, 2, 4, 3, 3], comment: "米国のスプリントスピード。テンから圧倒。" },
+    "ウインブライト": { val: [3, 4, 4, 3, 4], comment: "中山と香港の鬼。小回りでの機動力と渋い脚。" },
+    "スクリーンヒーロー": { val: [3, 4, 4, 3, 4], comment: "グラスワンダーの血。成長力とタフな舞台での底力。" },
+    "ポエティックフレア": { val: [4, 3, 3, 4, 3], comment: "欧州マイルのキレ味。柔軟なスピード。" },
+    "モーニン": { val: [4, 2, 5, 3, 3], comment: "フェブラリーSレコード勝ち。ダートマイルでのスピードとパワー。" },
+    "サトノクラウン": { val: [3, 4, 4, 3, 2], comment: "重馬場の鬼。気分屋だがハマった時のスタミナは驚異的。" },
+    "フォーウィールドライブ": { val: [5, 2, 4, 3, 3], comment: "アメリカンファラオ産駒。芝・ダートのスピード。" },
+    "ダノンスマッシュ": { val: [5, 1, 4, 3, 3], comment: "ロードカナロアの後継。スプリントでの絶対的スピード。" },
+    "エスポワールシチー": { val: [4, 3, 4, 3, 4], comment: "ダートマイル〜中距離の覇者。ゴールドアリュールの最高傑作の一頭。" },
+    "ダノンバラード": { val: [3, 4, 3, 3, 4], comment: "機動力とタフネス。好位から抜け出す器用さ。" },
+    "ファインニードル": { val: [5, 2, 4, 3, 3], comment: "ゴドルフィンのスプリンター。パワーあふれるスピード。" },
+    "マクフィ": { val: [4, 3, 4, 3, 4], comment: "芝ダート兼用のマイル適性。道中の追走力。" },
+    "アメリカンペイトリオット": { val: [4, 3, 4, 3, 3], comment: "米国のスピード。ダート適性も高い。" },
+    "フィレンツェファイア": { val: [4, 3, 4, 3, 3], comment: "米ダートのスピードとパワー。" },
+    "Into Mischief": { val: [5, 2, 4, 3, 4], comment: "米国トップサイアー。絶対的スピードと仕上がりの早さ。" },
+    "ダイワメジャー": { val: [4, 3, 4, 2, 4], comment: "マイル戦での絶対的先行力。バテないしぶとさ。" },
+    "ハーツクライ": { val: [3, 5, 3, 4, 4], comment: "成長力とスタミナ。直線の長いコースで長く良い脚。" },
+    "アジアエクスプレス": { val: [4, 3, 4, 3, 3], comment: "芝ダート兼用。パワフルなフットワーク。" },
+    "コパノリッキー": { val: [4, 4, 4, 3, 3], comment: "ダートG1最多勝。自分のペースで逃げた時の圧倒的強さ。" },
+    "シャンハイボビー": { val: [4, 2, 4, 3, 3], comment: "ストームキャット系のダートスピードと前向きさ。" },
+    "マテラスカイ": { val: [5, 1, 4, 2, 2], comment: "ダートスプリントの逃亡者。テンの速さは異常。" },
+    "カレンブラックヒル": { val: [4, 3, 4, 3, 4], comment: "ダイワメジャー譲りの先行力とマイル適性。" },
+    "ダノンキングリー": { val: [4, 3, 3, 4, 3], comment: "ディープ系マイラー。立ち回りの良さとキレ。" },
+    "タリスマニック": { val: [3, 4, 4, 3, 3], comment: "欧州のタフなスタミナ。" },
+    "American Pharoah": { val: [4, 3, 4, 2, 3], comment: "米三冠馬。豊かなスピードとパワフルな走り。" },
+    "ロジャーバローズ": { val: [4, 4, 4, 2, 3], comment: "ダービー馬。ディープ系らしからぬ持続力とパワー。" },
+    "ディーマジェスティ": { val: [3, 4, 4, 3, 3], comment: "皐月賞馬。タフな展開で活きる力強い末脚。" },
+    "レッドファルクス": { val: [5, 2, 4, 4, 3], comment: "スプリンターズS連覇。芝ダート問わない末脚のキレ。" },
+    "ブラックタイド": { val: [3, 4, 4, 3, 3], comment: "キタサンブラックの父。タフなスタミナと成長力。" },
+    "ヘンリーバローズ": { val: [4, 3, 4, 3, 3], comment: "シルバーステートの全弟。未完の大器。" },
+    "エフフォーリア": { val: [4, 4, 4, 4, 4], comment: "エピファネイアの最高傑作。完璧な立ち回りと推進力。" },
+    "ラブリーデイ": { val: [4, 4, 4, 3, 4], comment: "キングカメハメハ産駒の優等生。中距離での立ち回りの巧さ。" },
+    "リアルインパクト": { val: [4, 3, 4, 3, 3], comment: "ディープ系マイラー。先行してしぶとい。" },
+    "ディープインパクト": { val: [4, 4, 3, 5, 3], comment: "日本近代競馬の結晶。圧倒的な瞬発力と柔軟性。" },
+    "アニマルキングダム": { val: [3, 4, 4, 3, 3], comment: "芝ダート兼用のスケール感。" },
+    "Gun Runner": { val: [4, 4, 5, 3, 4], comment: "米国の怪物。スピードを持続させる絶対的パワー。" },
+    "ワールドプレミア": { val: [3, 5, 4, 3, 3], comment: "菊花賞・天皇賞春覇者。無尽蔵のスタミナ。" },
+    "Frosted": { val: [4, 3, 4, 3, 3], comment: "米国のスピード。マイル〜中距離で活躍。" },
+    "Tiz the Law": { val: [4, 3, 4, 3, 3], comment: "米ダートのスピードとパワー。" },
+    "ロゴタイプ": { val: [4, 3, 4, 3, 4], comment: "皐月賞・安田記念覇者。絶妙なペースメイクと粘り。" },
+    "シュヴァルグラン": { val: [3, 5, 4, 3, 4], comment: "ジャパンC覇者。ハーツクライ譲りのスタミナと成長力。" },
+    "ミッキーグローリー": { val: [4, 3, 3, 4, 3], comment: "ディープ系マイラー。マイルでの末脚。" },
+    "ゴールドアクター": { val: [3, 5, 4, 3, 4], comment: "有馬記念覇者。スクリーンヒーロー譲りの底力。" },
+    "Frankel": { val: [5, 4, 4, 5, 3], comment: "世界最強馬。全てを凌駕する絶対的スピードと推進力。" },
+    "バゴ": { val: [3, 4, 5, 3, 3], comment: "凱旋門賞馬。タフな馬場や重馬場での圧倒的パワー（クロノジェネシス等）。" },
+    "Saxon Warrior": { val: [4, 4, 4, 3, 3], comment: "ディープ産駒の欧州G1馬。パワーとキレの融合。" },
+    "トーセンラー": { val: [3, 4, 3, 4, 4], comment: "マイルCS覇者。ディープ産駒らしい鋭い末脚。" },
+    "キセキ": { val: [3, 5, 4, 3, 2], comment: "菊花賞馬。気分良く逃げた時の無尽蔵のスタミナ。" },
+    "リーチザクラウン": { val: [4, 3, 4, 3, 2], comment: "強烈な前進気勢。スピードに任せた逃げ。" },
+    "ベストウォーリア": { val: [4, 2, 4, 3, 3], comment: "ダート短距離〜マイルのスピード。" },
+    "キンシャサノキセキ": { val: [5, 2, 4, 3, 3], comment: "フジキセキ系のスプリンター。完成度の高さ。" },
+    "ビーチパトロール": { val: [3, 4, 4, 3, 3], comment: "米国の芝中距離馬。" },
+    "ジョーカプチーノ": { val: [4, 2, 4, 3, 3], comment: "マンハッタンカフェ産駒のマイラー。スピード豊か。" },
+    "ダンカーク": { val: [3, 3, 4, 3, 3], comment: "米ダート血統。ダートでのしぶとさ。" },
+    "Kingman": { val: [5, 3, 4, 4, 4], comment: "欧州のマイル王。スピードとキレを伝える。" },
+    "Too Darn Hot": { val: [5, 3, 4, 4, 3], comment: "欧州の快速。" },
+    "ヴァンゴッホ": { val: [3, 4, 4, 3, 3], comment: "米国のダート血統。" },
+    "Justify": { val: [4, 3, 5, 3, 3], comment: "米三冠馬。圧倒的パワーとスピードの持続力。" },
+    "ミッキーロケット": { val: [3, 4, 4, 3, 4], comment: "宝塚記念覇者。キンカメ系らしい力強さ。" },
+    "Practical Joke": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "アドマイヤムーン": { val: [4, 3, 4, 3, 3], comment: "エンドスウィープ系。芝でのスピードとパワー。" },
+    "サングレーザー": { val: [4, 3, 3, 4, 3], comment: "マイル〜中距離での鋭い差し脚。" },
+    "ホークビル": { val: [3, 4, 4, 3, 3], comment: "キトゥンズジョイ産駒のタフネス。" },
+    "ハクサンムーン": { val: [5, 1, 3, 3, 2], comment: "強烈なテンのスピード。旋回癖はお約束。" },
+    "ノヴェリスト": { val: [3, 5, 4, 3, 3], comment: "ドイツの重戦車。圧倒的なスタミナとパワー。" },
+    "エイシンヒカリ": { val: [5, 3, 3, 4, 1], comment: "世界を制した大逃げ。気分良く行ければ誰にも止められない。" },
+    "Speightstown": { val: [5, 2, 5, 3, 4], comment: "米ダート短距離の絶対的スピードとパワー。" },
+    "エイシンフラッシュ": { val: [3, 4, 4, 4, 3], comment: "ダービー馬。美しい馬体と内から抜けるキレ。" },
+    "Nyquist": { val: [4, 3, 4, 3, 3], comment: "アンクルモー産駒。米国のダートスピード。" },
+    "Palace Malice": { val: [4, 3, 5, 3, 3], comment: "米ダート血統。ダートを押し切るパワーと底力。" },
+    "キングカメハメハ": { val: [4, 4, 4, 4, 4], comment: "大種牡馬。高い万能性とパワーで日本のベースを引き上げた。" },
+    "ネロ": { val: [5, 1, 4, 2, 2], comment: "ダート＆芝のスプリンター。テンの速さ。" },
+    "エスケンデレヤ": { val: [3, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "Good Magic": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Authentic": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "ロジユニヴァース": { val: [3, 4, 4, 3, 3], comment: "ダービー馬。ネオユニヴァース譲りの機動力。" },
+    "Liam's Map": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Iffraaj": { val: [4, 3, 3, 4, 3], comment: "欧州のスピード血統。" },
+    "Night of Thunder": { val: [4, 3, 4, 3, 3], comment: "ドバウィ系。欧州のマイルスピード。" },
+    "Maxfield": { val: [4, 3, 4, 3, 3], comment: "米国のダート中距離。" },
+    "サリオス": { val: [4, 3, 4, 4, 3], comment: "朝日杯覇者。巨漢から繰り出すスピードとマイル適性。" },
+    "Charlatan": { val: [5, 2, 4, 3, 3], comment: "米国の強烈なダートスピード。" },
+    "Constitution": { val: [4, 3, 4, 3, 3], comment: "タピット系。米国のスピードとパワー。" },
+    "ディープブリランテ": { val: [4, 4, 4, 3, 2], comment: "ダービー馬。ディープ系らしからぬ前進気勢とパワー。" },
+    "ヤマカツエース": { val: [3, 4, 4, 3, 4], comment: "キンカメ産駒のタフネス。小回りでの機動力。" },
+    "タニノフランケル": { val: [3, 4, 4, 3, 3], comment: "フランケル×ウオッカ。パワーとスタミナ。" },
+    "St Mark's Basilica": { val: [4, 4, 4, 4, 4], comment: "シユーニ産駒。欧州の中距離王。" },
+    "City of Light": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Sottsass": { val: [3, 4, 4, 4, 3], comment: "凱旋門賞馬。欧州のタフなスタミナ。" },
+    "グァンチャーレ": { val: [4, 3, 3, 3, 4], comment: "スクリーンヒーロー産駒。マイルでの渋い脚。" },
+    "McKinzie": { val: [4, 3, 4, 3, 3], comment: "米国のダートマイラー。" },
+    "No Nay Never": { val: [5, 2, 4, 3, 3], comment: "スキャットダディ系。早熟性とスピード。" },
+    "ストロングリターン": { val: [4, 3, 4, 3, 3], comment: "安田記念レコード勝ち。シンボリクリスエス系のマイル適性。" },
+    "バンブーエール": { val: [4, 2, 4, 3, 3], comment: "ダートスプリンター。" },
+    "Maclean's Music": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Mendelssohn": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Yaupon": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Bolt d'Oro": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Cloud Computing": { val: [4, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "Union Rags": { val: [3, 4, 5, 3, 3], comment: "米国のダートパワー。" },
+    "ロージズインメイ": { val: [3, 4, 4, 3, 3], comment: "ドバイWC馬。ダートでのしぶとさ。" },
+    "Tapit": { val: [4, 4, 5, 3, 3], comment: "米国の歴史的大種牡馬。ダートでの絶対的パワー。" },
+    "Caravaggio": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離スピード。" },
+    "オーヴァルエース": { val: [4, 2, 4, 3, 3], comment: "ヘニーヒューズ産駒のダートスピード。" },
+    "Twirling Candy": { val: [4, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "パドトロワ": { val: [5, 1, 4, 3, 3], comment: "スウェプトオーヴァーボード産駒の快速。" },
+    "ノーブルミッション": { val: [3, 4, 4, 3, 3], comment: "フランケルの全弟。欧州のスタミナ。" },
+    "フリオーソ": { val: [3, 4, 5, 2, 4], comment: "地方の雄。ブライアンズタイム譲りのタフなパワー。" },
+    "Golden Horn": { val: [3, 5, 4, 3, 3], comment: "凱旋門賞馬。欧州のスタミナ。" },
+    "Collected": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "カラヴァッジオ": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "ワールドエース": { val: [4, 3, 3, 4, 3], comment: "ディープ系。マイルでのスピードとキレ。" },
+    "スズカコーズウェイ": { val: [4, 3, 4, 3, 3], comment: "ジャイアンツコーズウェイ系。" },
+    "ヴィクトワールピサ": { val: [3, 4, 4, 4, 4], comment: "ドバイWC覇者。日本の馬場への適応力と機動力。" },
+    "ワンアンドオンリー": { val: [3, 4, 4, 3, 3], comment: "ダービー馬。ハーツクライ譲りの持続力。" },
+    "ザファクター": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Mitole": { val: [5, 2, 4, 3, 3], comment: "米国のダートスプリント。" },
+    "リオンリオン": { val: [3, 4, 4, 3, 3], comment: "ルーラーシップ産駒。逃げ粘るスタミナ。" },
+    "バンドワゴン": { val: [4, 3, 4, 3, 2], comment: "強烈な逃げ。気性に難ありもポテンシャルは高かった。" },
+    "トーセンレーヴ": { val: [4, 3, 3, 4, 3], comment: "ディープ系。" },
+    "Harry Angel": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離王。" },
+    "Mor Spirit": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "シュウジ": { val: [5, 1, 4, 3, 2], comment: "短距離でのスピード。気性がカギ。" },
+    "Flightline": { val: [5, 4, 5, 4, 3], comment: "無敗の米国最強馬。次元の違うスピードと持続的パワー。" },
+    "ヴァンセンヌ": { val: [4, 3, 3, 4, 3], comment: "ディープ産駒のマイラー。" },
+    "トゥザグローリー": { val: [3, 4, 4, 3, 3], comment: "キンカメ系。タフなスタミナ。" },
+    "トランセンド": { val: [3, 4, 5, 2, 4], comment: "ダートG1の雄。逃げて押し切る圧倒的パワー。" },
+    "Essential Quality": { val: [4, 4, 4, 3, 3], comment: "米国のダート中距離。" },
+    "Adios Charlie": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "アレスバローズ": { val: [5, 1, 3, 4, 3], comment: "ディープ系のスプリンター。" },
+    "インカンテーション": { val: [3, 4, 4, 3, 4], comment: "ダートのタフネス。" },
+    "Take Charge Indy": { val: [4, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "シゲルカガ": { val: [5, 1, 4, 2, 2], comment: "ダート短距離のスピード。" },
+    "メイショウサムソン": { val: [3, 5, 4, 3, 4], comment: "オペラオー系。タフなスタミナとパワー。" },
+    "スマートオーディン": { val: [4, 3, 3, 4, 3], comment: "ダノンシャンティ産駒。マイルでのキレ。" },
+    "Knicks Go": { val: [5, 3, 4, 3, 3], comment: "米国のダートで逃げまくったスピード。" },
+    "More Than Ready": { val: [4, 3, 4, 3, 4], comment: "米国の万能スピード血統。仕上がりの早さ。" },
+    "Arrogate": { val: [4, 4, 5, 3, 3], comment: "米国の怪物。ドバイWCの伝説的マクリ。" },
+    "シビルウォー": { val: [3, 5, 4, 2, 4], comment: "ダート長距離の鬼。バテないスタミナ。" },
+    "Volatile": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Lea": { val: [4, 3, 4, 3, 3], comment: "米国の血統。" },
+    "ウォータービルド": { val: [4, 3, 4, 3, 3], comment: "ダートでのスピード。" },
+    "Study of Man": { val: [3, 4, 4, 3, 3], comment: "ディープ産駒の仏ダービー馬。" },
+    "Mo Town": { val: [4, 3, 4, 3, 3], comment: "アンクルモー系。" },
+    "ラニ": { val: [2, 5, 5, 2, 2], comment: "米三冠皆勤の破天荒馬。タフなスタミナと強烈な個性。" },
+    "ケープブランコ": { val: [3, 4, 4, 3, 3], comment: "ガリレオ系。欧州のスタミナ。" },
+    "Not This Time": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Beau Liam": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "アスクピーターパン": { val: [4, 2, 4, 3, 3], comment: "ダートスピード。" },
+    "キャプテンキング": { val: [4, 3, 4, 3, 3], comment: "南関の雄。" },
+    "サトノジェネシス": { val: [3, 4, 4, 3, 3], comment: "ディープ系。" },
+    "Dandy Man": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離。" },
+    "オウケンワールド": { val: [3, 4, 4, 3, 3], comment: "タフなスタミナ。" },
+    "Omaha Beach": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "トビーズコーナー": { val: [4, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "Ghaiyyath": { val: [4, 5, 4, 4, 3], comment: "ドバウィ系。欧州で大逃げをかました無尽蔵のスタミナ。" },
+    "アポロケンタッキー": { val: [3, 5, 5, 2, 3], comment: "ダート長距離での圧倒的パワーと馬格。" },
+    "トーホウジャッカル": { val: [3, 5, 3, 4, 3], comment: "菊花賞レコード。" },
+    "Blue Point": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離王。" },
+    "Vino Rosso": { val: [4, 3, 4, 3, 3], comment: "米国のダート中距離。" },
+    "ジャンダルム": { val: [5, 2, 4, 3, 3], comment: "スプリンターズS覇者。母ビリーヴ譲りのスピード。" },
+    "Exceedance": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Quality Road": { val: [4, 3, 5, 3, 3], comment: "米国のダートスピードとパワー。" },
+    "ハイランドリール": { val: [3, 5, 4, 3, 4], comment: "ガリレオ系。タフネスとスタミナ。" },
+    "Curlin": { val: [4, 4, 5, 3, 3], comment: "米国のダート中距離の雄。圧倒的パワー。" },
+    "ウィルテイクチャージ": { val: [4, 3, 4, 3, 3], comment: "米国のダート血統。" },
+    "アルバート": { val: [2, 5, 4, 3, 4], comment: "ステイヤーズSの主。絶対的な長距離適性。" },
+    "マルターズアポジー": { val: [4, 3, 3, 3, 2], comment: "ゴースティザッパー系。ひたすら逃げるのみ。" },
+    "Cairo Prince": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Tom's d'Etat": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "テーオーヘリオス": { val: [4, 2, 4, 3, 3], comment: "ダート短距離。" },
+    "グラスワンダー": { val: [4, 4, 5, 4, 4], comment: "グランプリの申し子。圧倒的なパワーと底力。" },
+    "Shancelot": { val: [5, 2, 4, 3, 3], comment: "米国のダート短距離。" },
+    "Le Havre": { val: [3, 4, 4, 3, 3], comment: "フランスの血統。" },
+    "Ulysses": { val: [3, 4, 4, 4, 3], comment: "ガリレオ系。" },
+    "Munnings": { val: [4, 2, 4, 3, 3], comment: "スピーツタウン系。" },
+    "Oscar Performance": { val: [4, 3, 4, 3, 3], comment: "米国の芝馬。" },
+    "Leinster": { val: [4, 2, 4, 3, 3], comment: "米国の血統。" },
+    "Life Is Good": { val: [5, 3, 4, 3, 3], comment: "米国の圧倒的ダートスピード。" },
+    "Dark Angel": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離スピード。" },
+    "ネオユニヴァース": { val: [3, 4, 4, 4, 2], comment: "サンデー系。荒々しい気性と底力。" },
+    "ニシケンモノノフ": { val: [4, 2, 4, 3, 4], comment: "ダート短距離でのしぶとさ。" },
+    "モンテロッソ": { val: [3, 4, 4, 3, 3], comment: "ドバイWC馬。" },
+    "ショウナンバッハ": { val: [3, 4, 3, 4, 2], comment: "強烈な末脚。" },
+    "Global Campaign": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "メイショウボーラー": { val: [4, 3, 4, 3, 4], comment: "芝ダート兼用のスピード。" },
+    "ヴァンキッシュラン": { val: [3, 4, 4, 3, 3], comment: "ディープ系のスタミナ。" },
+    "クラウンレガーロ": { val: [4, 3, 4, 3, 3], comment: "グラスワンダー系。" },
+    "Dabirsim": { val: [4, 3, 4, 3, 3], comment: "欧州のスピード。" },
+    "Army Mule": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "ステルヴィオ": { val: [4, 3, 3, 4, 3], comment: "ロードカナロア産駒のマイル適性。" },
+    "ゼンノロブロイ": { val: [3, 4, 4, 4, 4], comment: "サンデー系。秋古馬三冠の安定感とパワー。" },
+    "タイセイレジェンド": { val: [4, 2, 4, 3, 3], comment: "ダートのスピード。" },
+    "Farhh": { val: [4, 4, 4, 3, 3], comment: "欧州のスタミナ。" },
+    "トーセンジョーダン": { val: [3, 4, 4, 3, 4], comment: "天皇賞秋レコード。ジャングルポケット系の底力。" },
+    "Malibu Moon": { val: [4, 3, 4, 3, 3], comment: "エーピーインディ系。" },
+    "クリエイター2": { val: [3, 4, 4, 3, 3], comment: "米国のダート。" },
+    "Siyouni": { val: [4, 3, 4, 4, 3], comment: "欧州の名種牡馬。" },
+    "トーセンホマレボシ": { val: [4, 3, 3, 4, 3], comment: "ディープ系のキレ。" },
+    "エタリオウ": { val: [3, 5, 4, 3, 2], comment: "ステイゴールド系。最強の1勝馬、永遠の善戦マン。" },
+    "Hat Trick": { val: [4, 3, 3, 4, 3], comment: "サンデー系のマイルG1馬。" },
+    "Goldencents": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Improbable": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "I Am Invincible": { val: [5, 2, 4, 3, 3], comment: "豪州の絶対的スピード。" },
+    "Gleneagles": { val: [4, 3, 4, 4, 3], comment: "ガリレオ系マイラー。" },
+    "ガルボ": { val: [4, 3, 4, 3, 4], comment: "マンハッタンカフェ産駒のタフなマイラー。" },
+    "マツリダゴッホ": { val: [3, 4, 4, 3, 4], comment: "有馬記念覇者。中山の鬼。" },
+    "セイウンコウセイ": { val: [5, 2, 4, 3, 3], comment: "高松宮記念覇者。アドマイヤムーン系のスプリント力。" },
+    "Catholic Boy": { val: [4, 3, 4, 3, 3], comment: "米国の芝ダート兼用。" },
+    "フェノーメノ": { val: [3, 5, 4, 3, 4], comment: "天皇賞春連覇。ステイゴールド系のスタミナ。" },
+    "レッドベルジュール": { val: [4, 3, 3, 4, 3], comment: "ディープ系のキレ。" },
+    "レインボーライン": { val: [3, 5, 4, 3, 3], comment: "ステイゴールド系。タフな馬場での末脚。" },
+    "ホットロッドチャーリー": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "Kantharos": { val: [4, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "Home Affairs": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Preservationist": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "ゴールデンバローズ": { val: [4, 3, 4, 3, 3], comment: "タピット系のダートスピード。" },
+    "バトルプラン": { val: [4, 3, 4, 3, 3], comment: "エンパイアメーカー系。" },
+    "Lucky Vega": { val: [4, 2, 4, 3, 3], comment: "欧州の短距離。" },
+    "アポロキングダム": { val: [4, 2, 4, 3, 3], comment: "レモンドロップキッド系。" },
+    "ナムラタイタン": { val: [4, 3, 4, 3, 3], comment: "サウスヴィグラス系のダート短距離。" },
+    "サウスヴィグラス": { val: [5, 1, 5, 2, 4], comment: "ダート短距離の神様。圧倒的テンの速さとパワー。" },
+    "ミッキースワロー": { val: [3, 4, 3, 4, 3], comment: "トーセンホマレボシ産駒のキレ。" },
+    "ドリームジャーニー": { val: [3, 4, 3, 5, 2], comment: "ステイゴールド系。小柄な馬体から繰り出す強烈な末脚。" },
+    "エピカリス": { val: [4, 3, 4, 3, 3], comment: "ゴールドアリュール系のダートスピード。" },
+    "カフジテイク": { val: [3, 3, 4, 4, 3], comment: "ダートでの強烈な追い込み。" },
+    "Bernardini": { val: [4, 3, 5, 3, 3], comment: "エーピーインディ系。米ダートのパワー。" },
+    "Palace Pier": { val: [4, 3, 4, 4, 3], comment: "欧州のマイラー。" },
+    "Sioux Nation": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Karakontie": { val: [4, 3, 4, 3, 3], comment: "米国の芝マイラー。" },
+    "Baaeed": { val: [5, 4, 4, 5, 4], comment: "シーザスターズ系。欧州の無敗マイル〜中距離王。" },
+    "スピルバーグ": { val: [3, 4, 3, 4, 3], comment: "ディープ系の末脚。" },
+    "ドリームバレンチノ": { val: [4, 2, 4, 3, 3], comment: "ロージズインメイ系のダートスプリント。" },
+    "レーヴミストラル": { val: [3, 4, 3, 4, 3], comment: "キンカメ系のキレ。" },
+    "Medaglia d'Oro": { val: [4, 4, 4, 3, 3], comment: "米国のダート中距離。" },
+    "サンライズソア": { val: [4, 4, 4, 3, 3], comment: "シンボリクリスエス系のダート。" },
+    "スノードラゴン": { val: [4, 3, 5, 3, 4], comment: "アドマイヤコジーン系。力のいるダート・重馬場の鬼。" },
+    "ベルシャザール": { val: [3, 4, 5, 3, 3], comment: "キンカメ系のダート王。" },
+    "クロフネ": { val: [4, 3, 5, 3, 4], comment: "日本ダート界の伝説。豊かなスピードと前向きさ。" },
+    "Zarak": { val: [4, 4, 4, 3, 3], comment: "欧州のスタミナ。" },
+    "Corniche": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "アドミラブル": { val: [3, 4, 4, 4, 3], comment: "ディープ系の末脚。" },
+    "アイファーソング": { val: [3, 3, 4, 3, 3], comment: "ダート適性。" },
+    "Zoustar": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Nathaniel": { val: [3, 5, 4, 3, 3], comment: "エネイブルの父。欧州のスタミナ。" },
+    "Khozan": { val: [4, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "Lope de Vega": { val: [4, 3, 4, 4, 3], comment: "欧州の名種牡馬。" },
+    "サンライズノヴァ": { val: [4, 3, 4, 4, 3], comment: "ゴールドアリュール系。ダートでの強烈な末脚。" },
+    "トゥザワールド": { val: [3, 4, 4, 3, 3], comment: "キンカメ系のタフネス。" },
+    "エポカドーロ": { val: [4, 3, 4, 3, 3], comment: "オルフェーヴル系。先行力。" },
+    "ワイドファラオ": { val: [4, 3, 4, 3, 3], comment: "ヘニーヒューズ系。芝ダート兼用のスピード。" },
+    "グランプリボス": { val: [4, 3, 4, 3, 4], comment: "サクラバクシンオー系のマイラー。" },
+    "War Front": { val: [5, 2, 4, 3, 3], comment: "米国の芝ダートスピード。ダンジグ系。" },
+    "Invincible Spirit": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Blame": { val: [4, 3, 4, 3, 3], comment: "米国のダート中距離。" },
+    "グローリーヴェイズ": { val: [3, 5, 4, 4, 3], comment: "ディープ系。香港ヴァーズ連覇のタフネス。" },
+    "ナカヤマフェスタ": { val: [3, 4, 4, 3, 3], comment: "ステイゴールド系。凱旋門賞2着の底力。" },
+    "ニホンピロアワーズ": { val: [3, 5, 5, 3, 4], comment: "ホワイトマズル系。ダート中長距離の安定感とパワー。" },
+    "Uncle Mo": { val: [4, 3, 4, 3, 3], comment: "米国のスピード血統。" },
+    "コパノリチャード": { val: [5, 2, 4, 3, 2], comment: "ダイワメジャー系のスピード。気性に難。" },
+    "Jackie's Warrior": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Yoshida": { val: [4, 3, 4, 3, 3], comment: "ハーツクライ産駒の米国G1馬。" },
+    "Minzaal": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Dansili": { val: [4, 3, 4, 4, 3], comment: "デインヒル系。欧州のスピードとキレ。" },
+    "ヤングマンパワー": { val: [4, 3, 4, 3, 3], comment: "スニッツェル系のマイラー。" },
+    "レッドスパーダ": { val: [4, 3, 4, 3, 3], comment: "タイキシャトル系のマイラー。" },
+    "ヤマニンセラフィム": { val: [3, 4, 3, 4, 3], comment: "サンデー系。" },
+    "スマートファルコン": { val: [5, 4, 4, 3, 4], comment: "ゴールドアリュール系。砂のサイレンススズカ。" },
+    "シルポート": { val: [5, 3, 3, 2, 3], comment: "ホワイトマズル系。大逃げのスペシャリスト。" },
+    "ウインバリアシオン": { val: [3, 5, 4, 3, 3], comment: "ハーツクライ系。オルフェーヴルの永遠のライバル。" },
+    "Runhappy": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "アルクトス": { val: [4, 3, 5, 3, 3], comment: "アドマイヤオーラ系。ダートマイルの剛腕。" },
+    "New Approach": { val: [3, 5, 4, 3, 3], comment: "ガリレオ系。欧州のスタミナ。" },
+    "ハッピースプリント": { val: [4, 3, 4, 3, 3], comment: "アッミラーレ系。地方の雄。" },
+    "アイルハヴアナザー": { val: [4, 3, 4, 3, 3], comment: "米二冠馬。ダートのスピードとパワー。" },
+    "クレスコグランド": { val: [3, 4, 4, 3, 3], comment: "クロフネ系。" },
+    "ブルドッグボス": { val: [5, 2, 4, 3, 4], comment: "ダイワメジャー系。ダートスプリントのタフネス。" },
+    "St Patrick's Day": { val: [4, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "Snitzel": { val: [5, 2, 4, 3, 3], comment: "豪州の大種牡馬。絶対的スピード。" },
+    "City Zip": { val: [5, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "リヤンドファミユ": { val: [3, 4, 3, 3, 2], comment: "オルフェーヴルの全弟。" },
+    "アポロソニック": { val: [4, 3, 4, 3, 3], comment: "ビッグブラウン系。" },
+    "Australia": { val: [3, 4, 4, 3, 3], comment: "ガリレオ系。" },
+    "マカヒキ": { val: [3, 4, 4, 4, 4], comment: "ディープ系ダービー馬。息の長い活躍。" },
+    "サトノアレス": { val: [4, 3, 4, 4, 3], comment: "ディープ系。朝日杯覇者。" },
+    "Soldier's Call": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Mehmas": { val: [5, 2, 4, 3, 3], comment: "欧州の短距離。" },
+    "Stormy Atlantic": { val: [4, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "マクマホン": { val: [3, 4, 4, 3, 3], comment: "欧州のスタミナ。" },
+    "Masar": { val: [3, 4, 4, 3, 3], comment: "欧州のスタミナ。" },
+    "サトノインプレッサ": { val: [4, 3, 3, 4, 3], comment: "ディープ系のキレ。" },
+    "Wootton Bassett": { val: [4, 3, 4, 4, 3], comment: "欧州のスピードとキレ。" },
+    "ポアゾンブラック": { val: [4, 2, 4, 3, 3], comment: "ダート短距離。" },
+    "ベーカバド": { val: [4, 3, 4, 3, 3], comment: "欧州のマイル。" },
+    "グランデッツァ": { val: [4, 3, 3, 4, 3], comment: "アグネスタキオン系。スピードとキレ。" },
+    "マンハッタンカフェ": { val: [3, 5, 4, 3, 4], comment: "サンデー系。スタミナと長距離適性。" },
+    "チュウワウィザード": { val: [3, 5, 4, 3, 4], comment: "キングカメハメハ系。ダート中長距離の安定感。" },
+    "ロードバリオス": { val: [4, 3, 4, 3, 3], comment: "スピード血統。" },
+    "ゴールデンマンデラ": { val: [3, 4, 4, 3, 3], comment: "タフなスタミナ。" },
+    "セイクリムズン": { val: [4, 2, 4, 3, 3], comment: "エイシンサンディ系。ダートスプリント。" },
+    "Dragon Pulse": { val: [4, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Jack Christopher": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "レガーロ": { val: [4, 3, 4, 3, 3], comment: "ダートのスピード。" },
+    "タートルボウル": { val: [3, 4, 4, 3, 3], comment: "欧州のスタミナ。" },
+    "New Bay": { val: [3, 4, 4, 3, 3], comment: "ドバウィ系。" },
+    "Cajun Breeze": { val: [4, 2, 4, 3, 3], comment: "米国のスピード。" },
+    "サブノジュニア": { val: [5, 2, 4, 3, 4], comment: "サウスヴィグラス系。大井の生んだJBCスプリント覇者。" },
+    "Showcasing": { val: [5, 2, 4, 3, 3], comment: "欧州のスピード。" },
+    "Maximus Mischief": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "ストーミーシー": { val: [4, 3, 4, 3, 3], comment: "ストーミングホーム系。" },
+    "プリサイスエンド": { val: [4, 2, 4, 3, 3], comment: "エンドスウィープ系。ダート短距離。" },
+    "Vekoma": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "ジャングルポケット": { val: [3, 5, 4, 3, 4], comment: "トニービン系。府中の長い直線を伸びる底力。" },
+    "Dawn Approach": { val: [4, 3, 4, 3, 3], comment: "ニューアプローチ系。" },
+    "ディープスカイ": { val: [4, 4, 4, 4, 3], comment: "アグネスタキオン系。マイル〜中距離のキレ。" },
+    "タツゴウゲキ": { val: [3, 4, 4, 3, 3], comment: "マーベラスサンデー系。" },
+    "スクワートルスクワート": { val: [5, 1, 4, 3, 3], comment: "米国のスプリント。" },
+    "エーシントップ": { val: [5, 2, 4, 3, 3], comment: "テイルオブザキャット系。" },
+    "Klimt": { val: [4, 2, 4, 3, 3], comment: "米国のダート。" },
+    "ミュゼスルタン": { val: [4, 3, 4, 3, 3], comment: "キングカメハメハ系。" },
+    "ダノンシャンティ": { val: [5, 3, 3, 4, 3], comment: "フジキセキ系。NHKマイルCレコード。" },
+    "オメガパフューム": { val: [3, 5, 4, 4, 4], comment: "スウェプトオーヴァーボード系。大井の鬼、強烈な末脚。" },
+    "Street Boss": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Mastery": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "アーネストリー": { val: [4, 4, 4, 3, 4], comment: "グラスワンダー系。先行してバテない。" },
+    "ローレルゲレイロ": { val: [5, 2, 4, 3, 4], comment: "キングヘイロー系。スプリント戦でのしぶとい先行力。" },
+    "ダイシンサンダー": { val: [4, 3, 4, 3, 3], comment: "アドマイヤムーン系。" },
+    "オンファイア": { val: [3, 4, 3, 3, 2], comment: "ディープインパクトの全弟。" },
+    "Maximum Security": { val: [4, 4, 4, 3, 3], comment: "米国のダート。" },
+    "Daredevil": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "ユアーズトゥルーリ": { val: [4, 3, 4, 3, 3], comment: "ダートのスピード。" },
+    "トウケイヘイロー": { val: [5, 3, 3, 3, 3], comment: "ゴールドヘイロー系。スピードに任せた逃げ。" },
+    "ゴールドアリュール": { val: [4, 4, 5, 3, 4], comment: "サンデー系。日本ダート界を根底から支えた大種牡馬。" },
+    "エンパイアペガサス": { val: [3, 4, 4, 3, 3], comment: "エンパイアメーカー系。" },
+    "Upstart": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "Sharp Azteca": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Maurice": { val: [4, 4, 4, 3, 3], comment: "モーリス。" },
+    "Known Agenda": { val: [3, 4, 4, 3, 3], comment: "米国のダート中距離。" },
+    "Complexity": { val: [4, 3, 4, 3, 3], comment: "米国のダートスピード。" },
+    "ワンダーアキュート": { val: [3, 5, 4, 3, 4], comment: "カリズマティック系。ダートG1での異常なまでのしぶとさ。" },
+    "ロンドンタウン": { val: [4, 3, 4, 3, 3], comment: "カネヒキリ系。" },
+    "ローエングリン": { val: [4, 3, 4, 3, 3], comment: "シングスピール系。機動力。" },
+    "ミラアイトーン": { val: [4, 2, 4, 3, 3], comment: "ロンロ系。" },
+    "ハギノハイブリッド": { val: [3, 4, 4, 3, 3], comment: "タニノギムレット系。" },
+    "ダイシンバルカン": { val: [4, 3, 4, 3, 3], comment: "サクラバクシンオー系。" },
+    "スピリッツミノル": { val: [3, 5, 4, 3, 3], comment: "ディープスカイ系。タフな逃げ。" },
+    "ジュンツバサ": { val: [3, 4, 4, 3, 3], comment: "ステイゴールド系。" },
+    "キタノコマンドール": { val: [3, 4, 3, 4, 3], comment: "ディープ系。" },
+    "インティ": { val: [5, 3, 4, 3, 2], comment: "ケイムホーム系。逃げた時の圧倒的スピードと気性の脆さ。" },
+    "Will Take Charge": { val: [4, 3, 4, 3, 3], comment: "米国のダート中距離。" },
+    "Violence": { val: [4, 3, 4, 3, 3], comment: "米国のダート。" },
+    "Shalaa": { val: [5, 2, 4, 3, 3], comment: "インヴィンシブルスピリット系。" },
+    "Ocean Park": { val: [4, 3, 4, 3, 3], comment: "NZの血統。" },
+    "Modernist": { val: [4, 3, 4, 3, 3], comment: "米国の血統。" },
+    "Magna Grecia": { val: [4, 3, 4, 4, 3], comment: "インヴィンシブルスピリット系。" },
+    "Kitten's Joy": { val: [3, 4, 4, 4, 4], comment: "米国の芝大種牡馬。タフネスと機動力。" },
+    "Kameko": { val: [4, 3, 4, 3, 3], comment: "キトゥンズジョイ系。" },
+    "Capitalist": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "ローズキングダム": { val: [3, 4, 3, 4, 3], comment: "キングカメハメハ系。" },
+    "レオアクティブ": { val: [4, 2, 4, 3, 3], comment: "アドマイヤムーン系。" },
+    "タニノギムレット": { val: [4, 4, 5, 4, 3], comment: "ブライアンズタイム系。ダービー馬。強烈なパワーと末脚。" },
+    "サクラオリオン": { val: [3, 4, 4, 3, 3], comment: "エルコンドルパサー系。" },
+    "グロリアスノア": { val: [4, 3, 4, 3, 3], comment: "プリサイスエンド系。" },
+    "キングヘイロー": { val: [4, 3, 4, 4, 2], comment: "ダンシングブレーヴ系。独特のスピードと勝負根性。" },
+    "カデナ": { val: [4, 3, 3, 4, 3], comment: "ディープ系。マイル〜中距離のキレ。" },
+    "カジノドライヴ": { val: [4, 4, 5, 3, 3], comment: "マインシャフト系。米ダートのパワー。" },
+    "アスカクリチャン": { val: [3, 5, 4, 3, 3], comment: "スターリングローズ系。タフなスタミナ。" },
+    "Written Tycoon": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Unified": { val: [4, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Pivotal": { val: [4, 4, 5, 3, 3], comment: "欧州のパワー血統。重馬場の鬼。" },
+    "Peltzer": { val: [4, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Hard Spun": { val: [4, 3, 4, 3, 3], comment: "ダンジグ系。米国のスピードとパワー。" },
+    "Earthlight": { val: [5, 2, 4, 3, 3], comment: "シャマルダル系。" },
+    "Audible": { val: [4, 3, 4, 3, 3], comment: "イントゥミスチーフ系。" },
+    "ヘニーハウンド": { val: [4, 2, 4, 3, 3], comment: "ヘニーヒューズ系。" },
+    "フサイチセブン": { val: [4, 3, 4, 3, 3], comment: "フサイチペガサス系。" },
+    "ハタノヴァンクール": { val: [3, 5, 5, 3, 3], comment: "キングカメハメハ系。ダート中長距離のパワー。" },
+    "タイムパラドックス": { val: [3, 5, 5, 2, 4], comment: "ブライアンズタイム系。ダートでの底力とスタミナ。" },
+    "ステイゴールド": { val: [3, 5, 3, 4, 1], comment: "サンデー系。狂気と隣り合わせの圧倒的スタミナと勝負根性。" },
+    "ザサンデーフサイチ": { val: [3, 4, 4, 3, 3], comment: "ダンスインザダーク系。" },
+    "コパノチャーリー": { val: [4, 3, 4, 3, 3], comment: "アグネスデジタル系。" },
+    "ケイムホーム": { val: [4, 2, 4, 3, 3], comment: "ゴーンウェスト系。ダートスピード。" },
+    "クワイトファイン": { val: [3, 4, 3, 3, 3], comment: "トウカイテイオー系。" },
+    "クリーンエコロジー": { val: [4, 2, 4, 3, 3], comment: "キングカメハメハ系。" },
+    "キングオブコージ": { val: [3, 4, 4, 4, 3], comment: "ロードカナロア産駒らしからぬスタミナと末脚。" },
+    "オジュウチョウサン": { val: [2, 5, 5, 2, 4], comment: "ステイゴールド系。障害の絶対王者。無尽蔵のスタミナ。" },
+    "アロマカフェ": { val: [4, 3, 3, 3, 3], comment: "マンハッタンカフェ系。" },
+    "アールスター": { val: [4, 3, 4, 3, 3], comment: "ロードカナロア系。" },
+    "Victor Ludorum": { val: [4, 3, 4, 4, 3], comment: "シャマルダル系。" },
+    "Stay Inside": { val: [5, 2, 4, 3, 3], comment: "豪州のスピード。" },
+    "Silver State": { val: [4, 3, 4, 3, 3], comment: "ハードスパン系。" },
+    "Nashville": { val: [5, 2, 4, 3, 3], comment: "米国のダートスピード。" },
+    "Highland Reel": { val: [3, 5, 4, 3, 4], comment: "ガリレオ系。タフネスとスタミナ。" },
+    "Havana Gold": { val: [4, 3, 4, 3, 3], comment: "テオフィロ系。" },
+    "Flameaway": { val: [4, 3, 4, 3, 3], comment: "スキャットダディ系。" },
+    "Disco Partner": { val: [5, 2, 4, 3, 3], comment: "米国の芝スプリンター。" },
+    "ヒロシゲゴールド": { val: [5, 1, 4, 2, 3], comment: "サウスヴィグラス系。ダート短距離の逃げ。" },
+    "ダンスディレクター": { val: [5, 2, 3, 4, 2], comment: "アルデバラン系。強烈な末脚。" },
+    "ダノンシャーク": { val: [4, 4, 3, 4, 4], comment: "ディープ系。マイルでの安定感とキレ。" },
+    "ストラクター": { val: [4, 3, 4, 3, 3], comment: "米国の芝馬。" },
+    "サングラス": { val: [4, 2, 4, 3, 3], comment: "ダート短距離。" },
+    "サイモンラムセス": { val: [3, 4, 3, 3, 3], comment: "ブラックタイド系。" },
+    "ケイティブレイブ": { val: [3, 5, 5, 3, 4], comment: "アドマイヤマックス系。ダート中長距離での安定したパワー。" },
+    "ギンザグリングラス": { val: [3, 4, 4, 3, 3], comment: "メジロマックイーン系。" },
+    "キングリオ": { val: [4, 3, 4, 3, 3], comment: "キングカメハメハ系。" },
+    "Sweynesse": { val: [4, 3, 4, 3, 3], comment: "ロンロ系。" },
+    "Sea The Stars": { val: [4, 5, 4, 4, 4], comment: "欧州の名馬。圧倒的な総合力とスタミナ。" },
+    "Mystic Guide": { val: [4, 3, 4, 3, 3], comment: "ゴーストザッパー系。" },
+    "Massaat": { val: [4, 3, 4, 3, 3], comment: "テオフィロ系。" },
+    "Honor A. P.": { val: [4, 3, 4, 3, 3], comment: "オナーコード系。" },
+    "Ghostzapper": { val: [5, 3, 5, 3, 4], comment: "米国の怪物。圧倒的なスピードとパワー。" },
+    "Fastnet Rock": { val: [5, 2, 4, 3, 4], comment: "デインヒル系。豪州の大種牡馬。" },
+    "Dutch Art": { val: [4, 3, 4, 3, 3], comment: "メディシアン系。" },
+    "Drain the Clock": { val: [5, 2, 4, 3, 3], comment: "マクリーンズミュージック系。" },
+    "Cracksman": { val: [3, 5, 5, 3, 3], comment: "フランケル系。欧州の重馬場の鬼。" },
+    "Candy Ride": { val: [4, 3, 4, 3, 4], comment: "アルゼンチンの至宝。米ダートでのスピードとパワー。" },
+    "Almanzor": { val: [4, 3, 4, 4, 3], comment: "ウートンバセット系。" },
+    "Air Force Blue": { val: [5, 2, 4, 3, 3], comment: "ウォーフロント系。" },
+    "Oasis Dream": { val: [5, 2, 4, 3, 3], comment: "欧州のパワフルなスプリント血統。" },
+    "アルカセット": { val: [3, 4, 4, 3, 3], comment: "タフな馬場をこなすスタミナとパワー。" },
+    "Unusual Heat": { val: [4, 3, 4, 3, 3], comment: "米国のスピード血統。" },
+    "フレンチデピュティ": { val: [4, 3, 5, 3, 4], comment: "ダートもこなす豊かなパワー。" },
+    "ブライアンズタイム": { val: [2, 5, 5, 2, 2], comment: "急坂を苦にしない強靭なパワー。" },
+    "Milwaukee Brew": { val: [3, 4, 4, 3, 3], comment: "北米ダートの底力と中距離適性。" },
+    "ヴィクトワールピサ": { val: [3, 4, 4, 4, 4], comment: "日本の馬場への適応力と機動力。" },
+    "ゴールドアリュール": { val: [3, 4, 4, 3, 4], comment: "砂を被っても怯まない勝負根性。" },
+    "ルーラーシップ": { val: [3, 4, 4, 3, 3], comment: "長く良い脚を使う持続力。" },
+    "Harlan's Holiday": { val: [4, 3, 4, 3, 3], comment: "米ダートの豊かなスピード。" },
+    "メジロベイリー": { val: [3, 4, 3, 3, 3], comment: "柔軟性と立ち回りの良さ。" },
+    "ハーツクライ": { val: [3, 5, 3, 4, 4], comment: "スタミナと末脚の持続力。" },
+    "ホワイトマズル": { val: [3, 5, 4, 3, 3], comment: "欧州特有の重厚なスタミナ。" },
+    "More Than Ready": { val: [4, 3, 4, 3, 4], comment: "仕上がりの早さとテンのスピード。" },
+    "Exceed And Excel": { val: [5, 1, 3, 4, 3], comment: "強烈なスプリント能力。" },
+    "A.P. Indy": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Acatenango": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Acclamation": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Action This Day": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Adelaide": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Admire Moon": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Afleet Alex": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Afternoon Deelites": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Agnes Gold": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Alamosa": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Aldebaran": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Alhaarth": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "All American": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Almutawakel": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Alphabet Soup": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "American Post": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Anabaa": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Anabaa Blue": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Animal Kingdom": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "Anjaal": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Anodin": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Any Given Saturday": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Arcano": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Arch": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Archarcharch": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Astrology": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Astronomer Royal": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Aussie Rules": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Awesome Again": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Awesome Gambler": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Awesome of Course": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Awtaad": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Azamour": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bahamian Bounty": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bandini": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Banker's Gold": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Barathea": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bated Breath": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bay of Plenty": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Beat Hollow": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bellamy Road": { val: [3, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Belong to Me": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bernstein": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bertolini": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Big Brown": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Birdstone": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bluegrass Cat": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Bodemeister": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Bowman's Band": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Broken Vow": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Burning Roma": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cadeaux Genereux": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "California Chrome": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Camelot": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Canadian Frontier": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Candy Stripes": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Canford Cliffs": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cape Blanco": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cape Cross": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Captain Rio": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Carpe Diem": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Casamento": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Catcher In The Rye": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Champs Elysees": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Charm Spirit": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cherokee Run": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Chief Seattle": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Circular Quay": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "City Banker": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Closing Argument": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Colonel John": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Commands": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Compton Place": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Concorde's Tune": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Congaree": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Congrats": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Corinthian": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Coronado's Quest": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cosmic": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Country Reel": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cozzene": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Creative Cause": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Crimson Tide": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Crocker Road": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cross Traffic": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Custom for Carlos": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Cuvee": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Daiwa Major": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dalakhani": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dance Brightly": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Danehill": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "Danehill Dancer": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "Darshaan": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dashing Blade": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Daylami": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Declaration of War": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Deep Impact": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "Denman": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Deputy Minister": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Desert Prince": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Devil's Bag": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Diamond Green": { val: [3, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Diktat": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Discreet Cat": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Distorted Humor": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dixieland Band": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Docksider": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Doctor Dino": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Doyen": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dream Ahead": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Drosselmeyer": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dubai Destination": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dubawi": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Due Diligence": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Duke of Marmalade": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dundeel": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dunkirk": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dushyantor": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dylan Thomas": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Dynaformer": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "E Dubai": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Easing Along": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Ecclesiastic": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Efisio": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "El Corredor": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Eltish": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Elusive City": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Elusive Quality": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Elzaam": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Empire Maker": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "Encosta De Lago": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "English Channel": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Epaulette": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Equal Stripes": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Equiano": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Eskendereya": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Essence of Dubai": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Exceed And Excel": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "Exchange Rate": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Fast Company": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Firebreak": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "First Dude": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "First Samurai": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Flashy Bull": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Flat Out": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Flatter": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Flower Alley": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Flying Spur": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Footstepsinthesand": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Forest Camp": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Forest Wildcat": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Forestry": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Fortify": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Foxwedge": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "French Deputy": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Freud": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Full Mast": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Fusaichi Pegasus": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Galileo": { val: [3, 4, 4, 3, 3], comment: "スタミナとタフな馬場をこなす重厚なパワーを底上げする。" },
+    "Gemologist": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Generous": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Get Stormy": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Giacomo": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Giant's Causeway": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Gilded Time": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Girolamo": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Global Hunter": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Going Commando": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Golan": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Gold Halo": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Gone West": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Grand Lodge": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Grand Slam": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Green Tune": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Gregorian": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Gutaifan": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Halling": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hansen": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Harlan's Holiday": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Harlington": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hawk Wing": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Haynesfield": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Heart's Cry": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Heatseeker": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Heliostatic": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Henny Hughes": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Henrythenavigator": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "High Chaparral": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "High Yield": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hinchinbrook": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hold That Tiger": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Holy Roman Emperor": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Honor Code": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hurricane Run": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hurricane Sky": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Hussonet": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Include": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Indian Charlie": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Indygo Shiner": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Intense Focus": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Intidab": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Intikhab": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Istan": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "J Be K": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Jeremy": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Jimmy Creed": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Johan Cruyff": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Jump Start": { val: [3, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Kalatos": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Kendargent": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Kheleyf": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "King's Best": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "Kingmambo": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "Kingsalsa": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "Kodiac": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Kris": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Langfuhr": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lantana Mob": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Laoban": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lawman": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Layman": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lemon Drop Kid": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Leroidesanimaux": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Liaison": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Linamix": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lion Heart": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lizard Island": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lomitas": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lonhro": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lord Kanaloa": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Lord of England": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Luhuk": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Machiavellian": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Macho Uno": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Magician": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Magna Graduate": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Majestic Warrior": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Majesticperfection": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Makfi": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mamool": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Manduro": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Manhattan Rain": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Marciano": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Maria's Mon": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Marju": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mark of Esteem": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mastercraftsman": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Masterstroke": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Medicean": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Midnight Lute": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Milt's Overture": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mineshaft": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Miswaki": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mizzen Mast": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Monarchos": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Monsun": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Montjeu": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Motivator": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mount Nelson": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mr Speaker": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mr. Greeley": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Mt. Livermore": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Multiplex": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Murtajill": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "My Golden Song": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Myboycharlie": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Nayef": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Needs Further": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Northern Afleet": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Not A Single Doubt": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Not For Love": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Not For Sale": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Noverre": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Numerous": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Observatory": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Officer": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Offlee Wild": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Olympic Glory": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Oratorio": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Orb": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Orientate": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Orpen": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Oscar": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Overanalyze": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Paynter": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Perfect Soul": { val: [3, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Petionville": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pierro": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pioneerof the Nile": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Platini": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pleasantly Perfect": { val: [3, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Poet's Voice": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Point Given": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Point of Entry": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pollard's Vision": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Posse": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pour Moi": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Power": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Privately Held": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Proud Citizen": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Proudest Romeo": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pulpit": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pure Prize": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Put It Back": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Pyro": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rahy": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rail Link": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rainbow Quest": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Raven's Pass": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Ready's Image": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Reckless Abandon": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Red Ransom": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Red Runner": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Redattore": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Redoute's Choice": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Refuse To Bend": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Reliable Man": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Reload": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Reset": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Richly Blended": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rio de La Plata": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rip Van Winkle": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rock Hard Ten": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rock of Gibraltar": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rockport Harbor": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Roi Normand": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Roman Ruler": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Rossini": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Royal Anthem": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Royal Applause": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Ruler of The World": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Run Away and Hide": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Running Stag": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sabmykaa": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sadler's Wells": { val: [3, 4, 4, 3, 3], comment: "スタミナとタフな馬場をこなす重厚なパワーを底上げする。" },
+    "Sageburg": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sahm": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Saint Liam": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Saintly Look": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Salt Lake": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Scat Daddy": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Scipion": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sea The Moon": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sea of Secrets": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Seattle Fitz": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sebring": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Seeking the Gold": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sevres Rose": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Shackleford": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Shamardal": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Shanghai Bobby": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sharp Humor": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Shirocco": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sidney's Candy": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sightseeing": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Singspiel": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sinndar": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sir Prancealot": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sixties Icon": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Skipshot": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sky Classic": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sky Mesa": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sligo Bay": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Smart Strike": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Smarty Jones": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Smiling Tiger": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Smoke Glacken": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "So You Think": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Soldier Hollow": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Solon": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Songandaprayer": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Southern Image": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Spirit One": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Spring At Last": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Square Eddie": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sri Pekan": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "St. Petersburg": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Star Dabbler": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Starspangledbanner": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Storm Cat": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Storm Embrujado": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Strategic Prince": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Street Cry": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Street Sense": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Stripes Song": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Stroll": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Strong Mandate": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Style Vendome": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Successful Appeal": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Sunday Break": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "Sunday Silence": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "Sunray Spirit": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Super Saver": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Swain": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Swiss Spirit": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Symboli Kris S": { val: [3, 4, 4, 3, 3], comment: "スタミナとタフな馬場をこなす重厚なパワーを底上げする。" },
+    "Tale of Ekati": { val: [3, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tale of the Cat": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "Tamayuz": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tanino Gimlet": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tapizar": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tawqeet": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tejano Run": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Temple City": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Teofilo": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "The Gurkha": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "The Wow Signal": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Theatrical": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Thewayyouare": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Thousand Words": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Thunder Gulch": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tiz Wonderful": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tiznow": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tizway": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "To Honor and Serve": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Tobougg": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Toorak Toff": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Touch Gold": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Trappe Shot": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Treasure Beach": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "True Cause": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Unbridled's Song": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Uncaptured": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Utopia": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Vale of York": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Van Nistelrooy": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Verrazano": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Vespone": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Vicar": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Victoire Pisa": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Victory Note": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Vindication": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Warrior's Reward": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Whipper": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Wicked Strong": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Wiesenpfad": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Wilburn": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Wild Again": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Wildcat Heir": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Winker Watson": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Woodman": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Yes It's True": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Yesbyjimminy": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Zamindar": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Zenno Rob Roy": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Zensational": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "Zoffany": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アグネスタキオン": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "アグネスデジタル": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "アサクサキングス": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "アサクサデンエン": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アッミラーレ": { val: [3, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤオーラ": { val: [3, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤコジーン": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤジャパン": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤドン": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤベガ": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤボス": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アドマイヤマックス": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アフリート": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アメリカンボス": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アラジ": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アラムシャー": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アルデバラン2": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "アンライバルド": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "イーグルカフェ": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ウイニングチケット": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ウインクリューガー": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ウォーエンブレム": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ウォーターリーグ": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ウォーニング": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エアジハード": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エイシンアポロン": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エイシンサンディ": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エイシンデピュティ": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エイシンワシントン": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エムオーウイナー": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エリシオ": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エルコンドルパサー": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エンドスウィープ": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "エンパイアメーカー": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "オウケンブルースリ": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "オペラハウス": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "オレハマッテルゼ": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "オース": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カコイーシーズ": { val: [4, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カネヒキリ": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カフェオリンポス": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カフェラピード": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カリスタグローリ": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カリズマティック": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カルストンライトオ": { val: [3, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カンパニー": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "カーネギー": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "キャプテンスティーヴ": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "キャプテントゥーレ": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "キングズベスト": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "クリプティックラスカル": { val: [3, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "グランシュヴァリエ": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "グランデラ": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "コマンズ": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "コマンダーインチーフ": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "コロナドズクエスト": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "コンデュイット": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ゴールドヘイロー": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サイレントディール": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サクラバクシンオー": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "サクラプレジデント": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "サクラユタカオー": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "サクラローレル": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "サツカーボーイ": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サマーバード": { val: [3, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サムライハート": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サンカルロ": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サンダーガルチ": { val: [3, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "サンデーサイレンス": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "サンライズペガサス": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ザッツザプレンティ": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ザール": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ショウナンカンプ": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "シルバーチャーム": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "シンボリクリスエス": { val: [3, 4, 4, 3, 3], comment: "スタミナとタフな馬場をこなす重厚なパワーを底上げする。" },
+    "シンボリルドルフ": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ジェイドロバリー": { val: [3, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ジェニュイン": { val: [3, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ジェネラス": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ジャイアントレッカー": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スウィフトカレント": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スウェプトオーヴァーボード": { val: [4, 3, 4, 2, 3], comment: "圧倒的なダート適性とスピード、前向きなパワーを補完。" },
+    "スエヒロコマンダー": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スキャターザゴールド": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スキャン": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スズカフェニックス": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スズカマンボ": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スタチューオブリバティ": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スターオブコジーン": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スターキングマン": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "スターリングローズ": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ストラヴィンスキー": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ストリートセンス": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ストーミングホーム": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スニッツェル": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スパイキュール": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スピニングワールド": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スピードワールド": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スペシャルウィーク": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スマートボーイ": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "スーパーホーネット": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "セイントアレックス": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ゼンノエルシド": { val: [4, 3, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ソングオブウインド": { val: [3, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タイキシャトル": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タガノロックオン": { val: [3, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タップダンスシチー": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タバスコキャット": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タマモクロス": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "タヤスツヨシ": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ダイシンオレンジ": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ダイタクリーヴァ": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ダンシングブレーヴ": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ダンスインザダーク": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ダンディコマンド": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "チチカステナンゴ": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "チーフベアハート": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ティンバーカントリー": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "テイエムオペラオー": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "テレグノシス": { val: [4, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ディアブロ": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "デザートキング": { val: [3, 3, 4, 3, 4], comment: "王道血統らしい高い総合力と立ち回りの良さを付与。" },
+    "デヒア": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "デビッドジュニア": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "デュランダル": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トウカイテイオー": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トワイニング": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トーセンダンス": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トーセンブライト": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トーセンロレンス": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "トーホウエンペラー": { val: [3, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ナリタセンチュリー": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ナリタトップロード": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ノボジャック": { val: [4, 4, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ハイアーゲーム": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ハードスパン": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "バチアー": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "バトルライン": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "バブルガムフェロー": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "パラダイスクリーク": { val: [3, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ファスリエフ": { val: [4, 4, 3, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ファルブラヴ": { val: [4, 3, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ファンタスティックライト": { val: [3, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フォーティナイナー": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フォーティナイナーズサン": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フオテイテン": { val: [4, 4, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フサイチコンコルド": { val: [4, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フサイチリシャール": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "フジキセキ": { val: [4, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ブラックタキシード": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ブラックホーク": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ブレイクランアウト": { val: [4, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ヘクタープロテクター": { val: [4, 4, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ホワイトマズル": { val: [3, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ボストンハーバー": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ボーナスフィーバー": { val: [4, 3, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "マイネルセレクト": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "マイネルラヴ": { val: [5, 2, 3, 3, 3], comment: "卓越したスプリント能力とテンの速さを強化。" },
+    "マヤノトップガン": { val: [4, 4, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "マリエンバード": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "マルカシェンク": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "マーベラスサンデー": { val: [3, 3, 3, 4, 3], comment: "サンデーサイレンス系特有の柔軟性と瞬発力を伝える。" },
+    "ミシル": { val: [4, 4, 4, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ミスキャスト": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ムタファーウエク": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ムーンバラッド": { val: [3, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "メイショウオウドウ": { val: [4, 3, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "メジロベイリー": { val: [4, 4, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "メジロマックイーン": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "メジロライアン": { val: [3, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ヨハネスブルグ": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ラムタラ": { val: [4, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "リキアイサイレンス": { val: [4, 3, 4, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "リンカーン": { val: [3, 3, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "リンドシェーバー": { val: [3, 4, 3, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ルールオブロー": { val: [4, 4, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ロサード": { val: [4, 3, 4, 4, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ロックオブジブラルタル": { val: [3, 4, 3, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ロドリゴデトリアーノ": { val: [4, 4, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ロードアルティマ": { val: [4, 4, 3, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ワイルドラッシュ": { val: [3, 3, 4, 4, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ワイルドワンダー": { val: [3, 3, 3, 3, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ワークフォース": { val: [4, 3, 4, 2, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ヴァーミリアン": { val: [4, 3, 3, 3, 3], comment: "母父としてバランスの良い基礎能力と底力を伝える。" },
+    "ヴリル": { val: [3, 3, 4, 2, 4], comment: "母父としてバランスの良い基礎能力と底力を伝える。" }
+};
+
+const bmsDict = { ...sireDict };
+
+const jockeyDict = {
+"ルメール": { val: [4, 5, 5, 5, 5], comment: "圧倒的な馬場読みとペース配分。困ったらとりあえず買え。" },
+    "岩田望来": { val: [4, 3, 3, 4, 4], comment: "ポジションへの執念は親父譲り。イン突きも覚えつつある。" },
+    "松山弘平": { val: [4, 4, 3, 5, 4], comment: "先行させたら現役屈指の安定感。番手抜け出しの鬼。" },
+    "横山武史": { val: [5, 4, 3, 5, 4], comment: "闘志前面のゴリゴリ推進力。エフフォーリアで覚醒した剛腕。" },
+    "坂井瑠星": { val: [4, 4, 4, 5, 4], comment: "海外経験で研ぎ澄まされた先行力。矢作厩舎の主戦。" },
+    "川田将雅": { val: [5, 4, 4, 5, 4], comment: "一切の妥協を許さない、日本人最強のダート＆パワー系特化。" },
+    "戸崎圭太": { val: [4, 4, 4, 3, 4], comment: "良くも悪くもソツがない。東京マイルでじわっと伸ばす職人。" },
+    "西村淳也": { val: [4, 4, 4, 4, 4], comment: "馬質アップに伴いオールラウンダー化。勝負所の度胸が抜群。" },
+    "丹内祐次": { val: [4, 3, 4, 3, 4], comment: "ローカルの鬼。北海道シリーズで外からマクる姿はお馴染み。" },
+    "荻野極": { val: [3, 3, 3, 4, 3], comment: "ハマった時のスピード乗りは悪くない。積極策で活路を開く。" },
+    "横山和生": { val: [4, 4, 4, 4, 4], comment: "タイトルホルダーと築いた強気の逃げ。スマイルの裏の熱い魂。" },
+    "武豊": { val: [2, 5, 5, 5, 5], comment: "腕力ではなく神のペース配分。芸術的な逃げとイン突きは健在。" },
+    "津村明秀": { val: [3, 4, 4, 3, 4], comment: "テン乗りでの穴開け職人。東京の長い直線でこっそり持ってくる。" },
+    "吉村誠之助": { val: [3, 3, 3, 4, 3], comment: "園田の帝王のDNA。減量を活かした積極策に魅力。" },
+    "高杉吏麒": { val: [3, 3, 3, 4, 3], comment: "若手らしからぬ落ち着き。新人離れしたポジション取りのセンス。" },
+    "鮫島克駿": { val: [4, 4, 3, 4, 4], comment: "徹底的なインへのこだわり。馬群を割る根性は高く評価したい。" },
+    "斎藤新": { val: [3, 3, 3, 4, 4], comment: "思い切りの良い仕掛けが持ち味。ローカル重賞で穴をあける。" },
+    "佐々木大輔": { val: [4, 4, 4, 4, 4], comment: "北海道の若き帝王。イン差しも外捲りもこなす末恐ろしい才能。" },
+    "北村友一": { val: [4, 4, 3, 4, 4], comment: "怪我からの復帰で円熟味。大舞台で発揮される持ち前の胆力。" },
+    "団野大成": { val: [3, 4, 4, 4, 4], comment: "頭脳派。馬場を読んでの進路取りが若手の中でもピカイチ。" },
+    "三浦皇成": { val: [4, 4, 3, 4, 3], comment: "ダートでの安定感は抜群。砂の重賞なら無条件で信頼できる。" },
+    "舟山瑠泉": { val: [2, 2, 2, 3, 2], comment: "発展途上のルーキー。まずは前につける度胸から。" },
+    "田山旺佑": { val: [2, 2, 2, 3, 2], comment: "今後の成長に期待。ダートの短距離で揉まれて腕を磨きたい。" },
+    "松若風馬": { val: [3, 4, 3, 5, 3], comment: "スタートの良さは天下一品。ハナを切らせたらしぶとい。" },
+    "小林美駒": { val: [2, 2, 2, 4, 3], comment: "減量を活かした積極的なテンのダッシュ力が大きな武器。" },
+    "菊沢一樹": { val: [3, 3, 3, 3, 3], comment: "堅実な騎乗が持ち味。穴馬を掲示板に持ってくるいぶし銀。" },
+    "横山典弘": { val: [2, 5, 5, 2, 5], comment: "後方ポツンか、奇襲の逃げか。全ては天才のフィーリング次第。" },
+    "浜中俊": { val: [4, 4, 3, 4, 4], comment: "闘志あふれる強気の騎乗。一時期の低迷を抜け出し凄みが増した。" },
+    "菅原明良": { val: [4, 3, 4, 3, 4], comment: "中山競馬場での信頼度は抜群。直線で外から豪快に差し切る。" },
+    "Ｃ．デムーロ": { val: [5, 4, 4, 4, 5], comment: "剛腕炸裂。勝負所のガシガシ追いで馬の限界値を引き出す。" },
+    "田口貫太": { val: [4, 3, 3, 4, 4], comment: "愛されキャラの裏に隠されたガッツ。ダートでの追い込みは脅威。" },
+    "西塚洸二": { val: [3, 3, 3, 4, 3], comment: "トレセンでの猛稽古でメキメキ上達中。積極的な先行が光る。" },
+    "幸英明": { val: [4, 4, 3, 4, 3], comment: "鉄人。ダートのタフな流れを前目で押し切る競馬が最も似合う。" },
+    "レーン": { val: [5, 4, 4, 4, 5], comment: "豪州の天才。馬を動かすパワーと、コース取りの正確さが別次元。" },
+    "丸山元気": { val: [3, 3, 3, 4, 3], comment: "スムーズに先行できた時の粘り強さは健在。ローカルで輝く。" },
+    "池添謙一": { val: [4, 4, 3, 3, 5], comment: "G1ハンター。大舞台での勝負強さと、馬と喧嘩しない折り合い。" },
+    "田辺裕信": { val: [3, 5, 4, 3, 4], comment: "トリッキーなペースメイクの達人。逃げ馬に乗せたら一番怖い。" },
+    "岩田康誠": { val: [4, 4, 5, 3, 5], comment: "イン突き職人。馬場の最内をこじ開ける技術と度胸は唯一無二。" },
+    "菱田裕二": { val: [3, 4, 3, 4, 4], comment: "テーオーロイヤルで掴んだ自信。長距離での折り合いに定評あり。" },
+    "石川裕紀人": { val: [4, 3, 3, 3, 4], comment: "ダートで外から豪快にマクる姿が似合う。パンチ力は十分。" },
+    "横山琉人": { val: [3, 3, 3, 4, 3], comment: "減量を活かした強気の逃げ。思い切りの良さが最大の武器。" },
+    "原優介": { val: [3, 3, 4, 3, 4], comment: "ダートの長距離・差し馬での一発狙い。穴党の強い味方。" },
+    "小沢大仁": { val: [3, 3, 3, 4, 3], comment: "地道に腕を磨く若手。先行力を活かした競馬でコツコツ稼ぐ。" },
+    "富田暁": { val: [3, 3, 3, 4, 4], comment: "思い切りの良い仕掛け。ダートの先行争いで一歩も引かない。" },
+    "吉田隼人": { val: [4, 4, 4, 4, 4], comment: "ソダシを操った繊細な手綱。綺麗なフォームから繰り出す確かな技術。" },
+    "酒井学": { val: [3, 3, 3, 3, 4], comment: "忘れた頃に大穴を開ける職人。ローカルの芝中距離で狙いたい。" },
+    "木幡巧也": { val: [4, 3, 3, 4, 3], comment: "ダートでのゴリゴリの力勝負が得意。前傾ラップでこそ輝く。" },
+    "古川吉洋": { val: [3, 4, 3, 3, 3], comment: "ベテランの味。展開に恵まれた時のイン差しは今でも鋭い。" },
+    "杉原誠人": { val: [3, 3, 3, 3, 4], comment: "千直の鬼。新潟直線競馬での外ラチ沿い強襲はもはや芸術。" },
+    "松本大輝": { val: [3, 3, 3, 4, 3], comment: "長身を活かしたダイナミックな追い。これからの成長に期待大。" },
+    "大野拓弥": { val: [3, 4, 3, 2, 4], comment: "殿一気といえばこの人。展開待ちにはなるが末脚の引き出しは一級。" },
+    "角田大和": { val: [3, 3, 3, 4, 3], comment: "思い切りの良い先行策。ダートの中距離で自分のペースに持ち込めば。" },
+    "今村聖奈": { val: [2, 3, 3, 4, 3], comment: "軽負担を活かした積極策。スタートのセンスは天性のもの。" },
+    "小崎綾也": { val: [3, 3, 3, 3, 3], comment: "海外経験で培ったタフなメンタル。ダートでしぶとく食い下がる。" },
+    "亀田温心": { val: [3, 3, 3, 4, 3], comment: "減量卒業後も奮闘中。ダートの短距離でテンの速さを活かす。" },
+    "石神深道": { val: [2, 2, 2, 3, 2], comment: "障害の絶対王者のDNA。まずは平地でしっかり基礎を固めたい。" },
+    "長浜鴻緒": { val: [2, 2, 2, 4, 3], comment: "スタートダッシュの良さが光るルーキー。今後の成長が楽しみ。" },
+    "プーシャ": { val: [5, 4, 4, 4, 4], comment: "欧州からの刺客。パワーあふれる追い出しで日本のタフな馬場に順応。" },
+    "キング": { val: [4, 4, 4, 5, 4], comment: "豪州トップの手腕。テンのスピードと前傾姿勢の追いが非常に美しい。" },
+    "石田拓郎": { val: [2, 2, 2, 3, 2], comment: "経験を積んで急坂をこなす体幹と腕力をじっくり身につけたい。" },
+    "石橋脩": { val: [4, 3, 3, 3, 4], comment: "美しい騎乗フォーム。外から力強く差し切る正攻法の競馬が似合う。" },
+    "武藤雅": { val: [3, 3, 3, 4, 3], comment: "テン乗りでの思い切った騎乗が魅力。馬の気分を損ねない手綱。" },
+    "ディー": { val: [5, 4, 4, 4, 4], comment: "ニュージーランドの剛腕。タフな流れを力でねじ伏せるパワフルな騎乗。" },
+    "河原田菜々": { val: [2, 2, 3, 4, 3], comment: "減量を活かした軽快な逃げ。インに潜り込む度胸もついてきた。" },
+    "永島まなみ": { val: [2, 3, 3, 5, 3], comment: "スタートの良さと積極性は若手トップクラス。前残り馬場なら。" },
+    "太宰啓介": { val: [3, 3, 3, 3, 3], comment: "堅実なベテラン。無理のない騎乗で馬の力をきっちり出し切る。" },
+    "ゴンサル": { val: [5, 4, 4, 4, 4], comment: "南米特有の圧倒的な腕っぷし。バテそうな馬をもうひと伸びさせる。" },
+    "高田潤": { val: [4, 4, 4, 3, 4], comment: "障害界の重鎮。平地でも長距離戦でのペース配分の巧さは光る。" },
+    "上野翔": { val: [3, 3, 3, 3, 3], comment: "障害メインだが平地でも渋い働き。馬のスタミナを温存する技術。" },
+    "コレット": { val: [4, 4, 4, 4, 4], comment: "女性騎手トップクラスの剛腕。豪州仕込みのタイトな立ち回りが武器。" },
+    "吉田豊": { val: [4, 4, 3, 4, 4], comment: "パンサラッサを世界的逃亡者に導いた男。前からの粘り込みは芸術。" },
+    "マーカン": { val: [5, 4, 4, 4, 5], comment: "「剛腕」を絵に描いたような英国のスター。馬を動かす力が規格外。" },
+    "小牧加矢太": { val: [3, 3, 3, 3, 3], comment: "障害専属からの挑戦。馬術仕込みの柔らかな当たりとバランス感覚。" },
+    "モレイラ": { val: [4, 5, 5, 5, 5], comment: "マジックマン。馬が勝手にリラックスして走る魔法の手綱さばき。" },
+    "上里直汰": { val: [2, 2, 2, 3, 2], comment: "地方からの成り上がりを狙う若武者。まずはポジション取りから。" },
+    "嶋田純次": { val: [3, 3, 3, 3, 3], comment: "アサマノイタズラでの大穴一発の記憶。展開次第で突き抜ける。" },
+    "Ｍ．デムーロ": { val: [5, 3, 4, 2, 5], comment: "出遅れ癖はご愛嬌。外から一気に飲み込む大味なマクリはロマンの塊。" },
+    "藤岡佑介": { val: [3, 4, 3, 3, 4], comment: "冷静沈着な頭脳派。馬場の良いところを選ぶコース取りに長ける。" },
+    "森田誠也": { val: [2, 2, 2, 3, 2], comment: "若手らしいアグレッシブさ。ダートで前に行ってなんぼのスタイル。" },
+    "国分恭介": { val: [3, 3, 3, 4, 3], comment: "思い切りの良い大逃げ。人気薄を前で残す一発の魅力がある。" },
+    "古川奈穂": { val: [2, 2, 2, 4, 3], comment: "矢作厩舎で鍛えられる逃げのセンス。軽量を活かしたハイペース逃げ。" },
+    "和田陽希": { val: [2, 2, 2, 3, 2], comment: "腕を磨くルーキー。泥臭くインを突く競馬でアピールしたい。" },
+    "藤懸貴志": { val: [3, 3, 3, 3, 4], comment: "ハギノアレグリアスとの絆。追い出しをギリギリまで我慢する肝っ玉。" },
+    "内田博幸": { val: [5, 3, 3, 3, 4], comment: "衰え知らずの剛腕。ゴールドシップを動かした伝説の腕っぷしは健在。" },
+    "柴田裕一": { val: [3, 3, 3, 3, 3], comment: "渋い中堅。ローカルのダートでジリジリと脚を伸ばす。" },
+    "難波剛健": { val: [3, 3, 3, 3, 3], comment: "障害仕込みのタフネス。バテ合いの消耗戦になると急に浮上する。" },
+    "ハマーハ": { val: [4, 4, 4, 4, 4], comment: "欧州の若き才能。道中の折り合いと直線でのアクションのメリハリ。" },
+    "国分優作": { val: [3, 3, 3, 4, 3], comment: "恭介同様、前に行けた時のしぶとさ。ローカルの芝短距離で。" },
+    "秋山稔樹": { val: [3, 3, 3, 4, 3], comment: "減量を活かした軽快な先行。ポジションへのこだわりは強い。" },
+    "草野太郎": { val: [3, 3, 3, 3, 3], comment: "障害のイメージが強いが、スタミナを要する平地長距離でも侮れない。" },
+    "五十嵐雄大": { val: [3, 3, 3, 3, 3], comment: "同じく障害職人。折り合いをつける技術は平地でも生きる。" },
+    "坂口智康": { val: [3, 3, 3, 3, 3], comment: "障害戦線での思い切った飛越。平地ではスタミナ勝負で。" },
+    "大江原圭": { val: [3, 3, 3, 3, 3], comment: "障害でのタフな騎乗。平地では地味だが折り合いに長ける。" },
+    "伴啓太": { val: [3, 3, 3, 3, 3], comment: "障害ジョッキーとしてのキャリアを平地のスタミナ戦に活かす。" },
+    "佐藤翔馬": { val: [2, 2, 2, 4, 3], comment: "軽量を活かしたテンのダッシュ力。ダート短距離の逃げで勝負。" },
+    "松岡正海": { val: [4, 4, 3, 4, 4], comment: "ウインブライトとのコンビに代表される、勝負所のイン突きと気合。" },
+    "和田竜二": { val: [5, 3, 3, 3, 4], comment: "オペラオーから続く魂の激追い。ズブい馬を動かす闘志はNo.1。" },
+    "木幡初也": { val: [3, 3, 3, 3, 3], comment: "兄弟揃ってダートの力勝負が得意。前傾ラップでしぶとく残す。" },
+    "中井裕二": { val: [3, 3, 3, 3, 3], comment: "綺麗なフォーム。展開に恵まれた時にそつなく持ってくる。" },
+    "丸田恭介": { val: [3, 3, 3, 2, 4], comment: "ナランフレグで魅せたイン強襲。極端な追い込みで一発を狙う。" },
+    "鷲頭虎太": { val: [3, 2, 2, 4, 3], comment: "函館でのブレイク。積極的なポジション取りで思い切りよく乗る。" },
+    "川又賢治": { val: [3, 3, 3, 4, 3], comment: "スピードを活かした先行策。ダートの短距離で持ち味を発揮。" },
+    "原田和真": { val: [3, 3, 3, 3, 3], comment: "堅実な立ち回り。人気薄を中団からジリジリと押し上げる。" },
+    "柴田善臣": { val: [3, 4, 4, 3, 4], comment: "大先生。馬の邪魔をしない柔らかな手綱さばきは国宝級の技術。" },
+    "江田照男": { val: [3, 4, 3, 3, 4], comment: "大穴といえばこの男。誰も予想しないタイミングでの奇襲が持ち味。" },
+    "鮫島良太": { val: [3, 3, 3, 3, 3], comment: "ローカルでの堅実な差し。展開が向いた時にしっかり脚を使う。" },
+    "柴田大知": { val: [4, 3, 3, 4, 3], comment: "マイネル軍団の主戦。テンから押して行く前傾姿勢のタフネス騎乗。" },
+    "長岡禎仁": { val: [3, 3, 3, 3, 4], comment: "ケイティブレイブでの大穴の記憶。インをロスなく立ち回る職人。" },
+    "荻野琢真": { val: [3, 3, 3, 3, 3], comment: "中京や小倉で時折見せる鋭いイン差し。展開待ちのところはある。" },
+    "高倉稜": { val: [3, 3, 3, 4, 3], comment: "重賞でも怯まない先行力。ハナを叩いた時の粘り強さが光る。" },
+    "井上敏樹": { val: [3, 3, 3, 3, 3], comment: "ローカルダートでの一発狙い。外からジワジワと脚を伸ばす。" },
+    "北村宏司": { val: [4, 4, 4, 4, 4], comment: "キタサンブラックの初代主戦。ソツのない立ち回りと安定感の塊。" },
+    "森一馬": { val: [3, 3, 3, 3, 3], comment: "障害のトップジョッキー。平地ではズブい馬を動かすスタミナ勝負で。" },
+    "川端海翼": { val: [2, 2, 2, 4, 3], comment: "減量を活かした前残り狙い。まずはスピードに乗せる感覚を磨く。" },
+    "水沼元輝": { val: [2, 2, 2, 4, 3], comment: "積極的な逃げ・先行が持ち味。ローカルの小回りコースで。" },
+    "中村将之": { val: [3, 3, 3, 3, 3], comment: "障害でのタフな立ち回り。平地でもスタミナを要する展開に強い。" },
+    "小野寺祐太": { val: [3, 3, 3, 3, 3], comment: "障害戦の経験値を平地に還元。バテ合いの消耗戦でしぶとさを発揮。" },
+    "野中悠太": { val: [3, 3, 3, 3, 3], comment: "穴をあけるならローカルの中距離。中団からの差し込みを狙う。" },
+    "加藤祥太": { val: [3, 3, 3, 3, 3], comment: "綺麗な騎乗姿勢。馬の折り合いを重視し、終いの脚を活かす。" },
+    "黛弘人": { val: [3, 4, 3, 3, 4], comment: "牝馬の扱いと差し馬の誘導が巧み。新潟の長い直線でこっそり来る。" },
+    "石神深一": { val: [4, 4, 4, 3, 4], comment: "オジュウチョウサンの主戦。平地でも長距離のペース読みは一級品。" },
+    "泉谷楓真": { val: [3, 3, 3, 4, 3], comment: "一時期の勢いを取り戻したい。減量なしでも前に行けるテンの速さ。" },
+    "バルザロ": { val: [5, 4, 4, 4, 5], comment: "凱旋門賞ジョッキーの豪快な追い。日本の高速馬場でもパワーで圧倒。" },
+    "橋木太希": { val: [2, 2, 2, 3, 2], comment: "これから経験を積む若手。ダートの揉まれる展開で胆力を鍛えたい。" },
+    "ジェルー": { val: [5, 4, 4, 5, 4], comment: "アメリカのダートトップ騎手。絶対的なテンの速さと押し切る力。" },
+    "川須栄彦": { val: [3, 3, 3, 4, 3], comment: "小回りのダートで先行力を活かす競馬。スタートからのダッシュが肝。" },
+    "小林脩斗": { val: [3, 2, 2, 4, 3], comment: "減量を活かした積極策。思い切りの良い逃げで波波乱を演出する。" },
+    "小坂忠士": { val: [3, 3, 3, 3, 3], comment: "障害で培ったタフネス。平地では長丁場でバテない馬の誘導に回る。" },
+    "大久保友雅": { val: [2, 2, 2, 3, 3], comment: "馬の気分を損ねない乗り方。直線での追い出しのタイミングを学習中。" },
+    "菅原隆一": { val: [3, 3, 3, 3, 3], comment: "折り合い重視の丁寧な手綱。展開がハマった時の差し込みに期待。" },
+    "田中健": { val: [3, 3, 3, 3, 3], comment: "ベテランの落ち着き。ローカルのダート戦でしぶとく食い下がる。" },
+    "遠藤汰月": { val: [2, 2, 2, 3, 2], comment: "ローカルでの経験値を積む若武者。思い切った先行策に期待。" },
+    "木幡育也": { val: [3, 3, 3, 4, 3], comment: "兄弟同様、テンのダッシュ力と思い切りの良い先行で勝負。" },
+    "小林凌大": { val: [3, 3, 3, 3, 3], comment: "障害と平地の二刀流に挑む。タフな馬場でのパワー勝負が似合う。" },
+    "城戸義政": { val: [3, 3, 3, 3, 3], comment: "馬の行く気に任せる自然な立ち回り。揉まれない外枠でスムーズに。" },
+    "渡辺竜也": { val: [4, 4, 4, 4, 4], comment: "笠松の若きエース。中央でも怯まない強気なイン突きとポジション取り。" },
+    "伊藤工真": { val: [3, 3, 3, 3, 3], comment: "コツコツと腕を磨く。ローカルの長距離戦でスタミナを活かす騎乗。" },
+    "黒岩悠": { val: [3, 3, 3, 3, 3], comment: "障害での豊富なキャリア。平地ではペースが上がった時のしぶとさ。" },
+    "金子光希": { val: [3, 3, 3, 3, 3], comment: "同じく障害職人。平地の乱ペースになった時のスタミナ温存がカギ。" },
+    "石川倭": { val: [4, 4, 4, 4, 4], comment: "ホッカイドウ競馬が誇る天才。馬群を割る勝負根性と冷静な判断力。" },
+    "西谷誠": { val: [4, 4, 4, 3, 4], comment: "障害重賞の常連。平地でも長距離での仕掛けのタイミングは絶妙。" },
+    "土田真翔": { val: [2, 2, 2, 3, 2], comment: "若手らしくまずは前につける姿勢。ローカルダートで揉まれて成長。" },
+    "矢野貴之": { val: [4, 4, 4, 4, 4], comment: "大井のトップジョッキー。インでジッと我慢して抜け出す技術は職人技。" },
+    "ナレドゥ": { val: [4, 4, 3, 4, 4], comment: "アフリカからの刺客。独特のフォームから繰り出すパワフルな追い。" },
+    "ヘルナン": { val: [5, 4, 4, 4, 4], comment: "米国仕込みの圧倒的なテンのダッシュ。ダート戦でのスピードは驚異。" },
+    "的場勇人": { val: [3, 3, 3, 3, 3], comment: "父譲りの勝負服でコツコツと。先行できた時の粘り込みに期待。" },
+    "塩津璃菜": { val: [2, 2, 2, 4, 3], comment: "女性騎手特有の軽さを活かした逃げ。スタートセンスを磨き中。" },
+    "飛田愛斗": { val: [4, 4, 4, 4, 4], comment: "佐賀の若き天才。中央のペースにも即座に対応する並外れた適応力。" },
+    "ロイド": { val: [4, 4, 4, 4, 4], comment: "欧州の緻密なペース配分。タフな馬場でも馬のバランスを崩さない。" },
+    "岡田祥嗣": { val: [3, 3, 3, 3, 3], comment: "地方からの移籍組。長年の経験に裏打ちされた渋いイン突き。" },
+    "江田勇亮": { val: [3, 3, 3, 3, 3], comment: "障害をメインに活躍。平地ではスタミナ勝負の泥仕合で浮上。" },
+    "谷原柚希": { val: [2, 2, 2, 3, 2], comment: "ルーキーイヤーの奮闘。まずは馬の力を邪魔しないスムーズな誘導を。" },
+    "岩部純二": { val: [3, 3, 3, 3, 3], comment: "ベテランの味。穴馬を外からジリジリ伸ばして波乱を呼ぶ。" },
+    "リョン": { val: [4, 4, 4, 4, 4], comment: "香港のタイトな馬群で鍛えられたイン差しの技術。狭い所も怯まない。" },
+    "佐野遥久": { val: [2, 2, 2, 3, 2], comment: "未来の飛躍に向けた下積み。ダート短距離でダッシュ力を身につけたい。" },
+    "西村太一": { val: [3, 3, 3, 3, 3], comment: "障害でのタフな飛越。平地ではバテない馬での前残り狙い。" },
+    "落合玄太": { val: [4, 4, 4, 4, 4], comment: "門別の若き雄。中央の芝でも全く見劣りしないコース取りと腕っぷし。" },
+    "小野楓馬": { val: [4, 3, 3, 4, 3], comment: "門別仕込みのダート適性。前で押し切るパワフルな騎乗が持ち味。" },
+    "宮内勇樹": { val: [3, 3, 3, 3, 3], comment: "地方の小回りで鍛えられた機動力。中央のローカルで一発を秘める。" },
+    "吉村智洋": { val: [5, 4, 4, 5, 4], comment: "園田の絶対王者。ダートのイン突きと抜け出しは中央でもトップクラス。" },
+    "笹川翼": { val: [4, 4, 4, 4, 4], comment: "南関の若き大黒柱。芝の重賞でも平然と馬券に絡む高いレースIQ。" },
+    "望月洵輝": { val: [2, 2, 2, 3, 2], comment: "愛知からの挑戦。まずは中央の激しいペースへの対応が鍵になる。" },
+    "下原理": { val: [4, 4, 4, 4, 4], comment: "兵庫のベテラン。道中の折り合いと勝負所の冷静さは匠の領域。" },
+    "田村太雅": { val: [3, 3, 3, 3, 3], comment: "堅実な立ち回りで穴馬を上位に導く。ローカルの混戦で。" },
+    "桑村真明": { val: [4, 4, 4, 4, 4], comment: "門別のトップガン。ダートでの力強い追いとインの捌きは特筆もの。" },
+    "ヴェロン": { val: [4, 4, 4, 4, 4], comment: "フランスの女性トップ騎手。日本の高速馬場でもしなやかに対応。" },
+    "松本一心": { val: [2, 2, 2, 3, 2], comment: "金沢のホープ。小回りで培った先行力を中央のローカルで活かしたい。" },
+    "フーリー": { val: [5, 4, 4, 4, 4], comment: "南アフリカの名手。パワフルなフォームで馬をゴールまでねじ伏せる。" },
+    "丸野勝虎": { val: [4, 4, 4, 4, 4], comment: "名古屋の重鎮。展開を読み切っての一発回答は中央でも恐ろしい。" },
+    "本田正重": { val: [4, 4, 4, 4, 4], comment: "船橋の仕事人。タフなダート戦での力強いアクションと勝負強さ。" },
+    "安藤洋一": { val: [3, 3, 3, 4, 3], comment: "大井での経験。前で競馬ができた時の粘り強さは中央でも通用。" },
+    "菅原辰徳": { val: [3, 3, 3, 3, 3], comment: "岩手の誇る巧者。ローカルダートで外からマクる競馬に期待。" },
+    "桜井光輔": { val: [3, 3, 3, 4, 3], comment: "川崎の若手。スタートの良さを活かした積極策で活路を見出す。" },
+    "福原杏": { val: [3, 3, 3, 4, 3], comment: "浦和からの刺客。小回り特有のタイトなポジション取りで勝負。" },
+    "山本聡哉": { val: [4, 4, 4, 4, 4], comment: "岩手の帝王。仕掛けのタイミングと馬を動かす技術は全国区。" },
+    "筒井勇介": { val: [3, 3, 3, 4, 3], comment: "笠松の雄。スタートから前につける積極性が中央のダートでどこまで。" },
+    "宮崎北斗": { val: [3, 3, 3, 3, 3], comment: "馬の気分を害さない柔らかな騎乗。展開待ちからの差し込み。" },
+    "山本大翔": { val: [2, 2, 2, 3, 2], comment: "これからに期待の若手。まずはダート戦で揉まれ強さを身につけたい。" },
+    "土方颯太": { val: [2, 2, 2, 3, 2], comment: "地方の小回りでの経験を糧に。思い切った先行策を見たい。" },
+    "青海大樹": { val: [2, 2, 2, 3, 2], comment: "経験を積む段階。馬群での折り合いと直線でのコース取りを学習中。" },
+    "谷内貫太": { val: [3, 3, 3, 4, 3], comment: "大井での強気の騎乗。ダートのタフな流れに乗る度胸はある。" },
+    "神尾香澄": { val: [2, 2, 2, 4, 3], comment: "川崎の女性ジョッキー。軽量を活かしたテンの速さで前残り狙い。" },
+    "山中悠希": { val: [3, 3, 3, 3, 3], comment: "船橋の中堅。馬の力を信じて直線までじっと我慢する騎乗。" },
+    "岡村健司": { val: [3, 3, 3, 4, 3], comment: "船橋仕込みの先行力。テンのダッシュを活かして自分のペースで。" },
+    "長谷川蓮": { val: [2, 2, 2, 3, 2], comment: "若手らしく泥臭い騎乗でアピール。小回りのダートで活路を。" },
+    "永井孝典": { val: [3, 3, 3, 3, 3], comment: "兵庫の若手。吉村、下原の背中を見て育つ負けん気の強さ。" },
+    "松戸政也": { val: [3, 3, 3, 3, 3], comment: "金沢での経験。タフなダート戦でのスタミナ勝負でしぶとさを発揮。" },
+    "井上瑛太": { val: [3, 3, 3, 4, 3], comment: "高知の若きホープ。ナイターで鍛えられた積極策を中央でも。" },
+    "阿部龍": { val: [4, 4, 4, 4, 4], comment: "門別の実力派。展開を読む冷静さと勝負所でのパンチ力を兼ね備える。" },
+    "ザーラ": { val: [5, 4, 4, 4, 4], comment: "メルボルンCジョッキーの圧倒的な勝負強さ。剛腕で馬を動かす。" },
+    "服部茂史": { val: [4, 4, 4, 4, 4], comment: "ホッカイドウ競馬のレジェンド。ペース読みとイン突きの鋭さは健在。" },
+    "川原正一": { val: [4, 5, 5, 4, 4], comment: "兵庫の生ける伝説。還暦を過ぎても衰えない魔法のようなコース取り。" },
+    "C.ルメール": { val: [4, 5, 5, 5, 5], comment: "圧倒的な馬場読みとペース配分。困ったらとりあえず買え。" },
+    "T.マーカンド": { val: [5, 4, 4, 4, 5], comment: "「剛腕」を絵に描いたような英国のスター。馬を動かす力が規格外。" },
+    "D.レーン": { val: [5, 4, 4, 4, 5], comment: "豪州の天才。馬を動かすパワーと、コース取りの正確さが別次元。" },
+    "F.ゴンサルベ": { val: [5, 4, 4, 4, 4], comment: "南米特有の圧倒的な腕っぷし。バテそうな馬をもうひと伸びさせる。" },
+    "M.ミシェル": { val: [3, 3, 3, 4, 3], comment: "華やかなルックスと裏腹に前に行く強気の姿勢。ダートで輝く。" }
+};
+
+        let loadedSireDict = typeof sireDict !== 'undefined' ? sireDict : {};
+        let loadedBmsDict = typeof bmsDict !== 'undefined' ? bmsDict : {};
+        let loadedJockeyDict = typeof jockeyDict !== 'undefined' ? jockeyDict : {};
+
+        let generatedCopyText = "";
+        let savedRaces = JSON.parse(localStorage.getItem('keibaSateiMemory') || '[]');
+
+        function renderHistory() {
+            let historySection = document.getElementById('history-section');
+            let list = document.getElementById('history-list');
+            if (savedRaces.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+            historySection.style.display = 'block';
+            list.innerHTML = '';
+            savedRaces.forEach((race, idx) => {
+                let li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `
+                    <span class="history-item-title" onclick="loadRace(${idx})">${race.title}</span>
+                    <span class="history-delete" onclick="deleteRace(${idx}, event)">✖</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function saveToHistory(title, rawText) {
+            let existingIdx = savedRaces.findIndex(r => r.title === title);
+            if (existingIdx > -1) {
+                savedRaces[existingIdx].rawText = rawText; 
+            } else {
+                savedRaces.push({ title: title, rawText: rawText });
+            }
+            localStorage.setItem('keibaSateiMemory', JSON.stringify(savedRaces));
+            renderHistory();
+        }
+
+        function loadRace(idx) {
+            document.getElementById('input-text').value = savedRaces[idx].rawText;
+            analyzeData(false); 
+            window.scrollTo({ top: document.getElementById('result-area').offsetTop - 20, behavior: 'smooth' });
+        }
+
+        function deleteRace(idx, event) {
+            event.stopPropagation();
+            if(confirm(savedRaces[idx].title + ' を削除しますか？')) {
+                savedRaces.splice(idx, 1);
+                localStorage.setItem('keibaSateiMemory', JSON.stringify(savedRaces));
+                renderHistory();
+            }
+        }
+        
+        function clearAllHistory() {
+            if(confirm('保存された全てのレースを削除しますか？')) {
+                savedRaces = [];
+                localStorage.setItem('keibaSateiMemory', JSON.stringify(savedRaces));
+                renderHistory();
+                resetData();
+            }
+        }
+
+        window.onload = function() {
+            renderHistory();
+        };
+
+        function resetData() {
+            document.getElementById('input-text').value = '';
+            document.getElementById('result-area').innerHTML = '';
+            document.getElementById('action-btns').style.display = 'none';
+            generatedCopyText = "";
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(generatedCopyText).then(() => {
+                let toast = document.getElementById("toast");
+                toast.className = "toast show";
+                setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 2500);
+            });
+        }
+
+        function toggleAccordion(index) {
+            let content = document.getElementById('accordion-' + index);
+            let icon = document.getElementById('icon-' + index);
+            if(content.classList.contains('active')) {
+                content.classList.remove('active');
+                if(icon) icon.innerText = '▼';
+            } else {
+                content.classList.add('active');
+                if(icon) icon.innerText = '▲';
+            }
+        }
+
+              // ==========================================
+        // 分析ロジック（究極完全版：激しい改行崩れ＆Android特殊文字の完全制圧）
+        // ==========================================
+        function analyzeData(shouldSave = true) {
+            let text = document.getElementById('input-text').value;
+            let resultArea = document.getElementById('result-area');
+            resultArea.innerHTML = '';
+            generatedCopyText = "";
+
+            if (!text.trim()) {
+                resultArea.innerHTML = '<p class="error-msg">テキストが入力されていません。</p>';
+                return;
+            }
+
+            // 【究極強化】Android/iPhoneのテキスト認識で混入する特殊な部首（西、黄、青など）を全て標準漢字に強制変換
+            const kangxiMap = {
+                '⼀':'一','⼆':'二','⼂':'丶','⼃':'丿','⼄':'乙','⼅':'亅','⼇':'亠','⼈':'人','⼉':'儿','⼊':'入','⼋':'八','⼌':'冂','⼍':'冖','⼎':'冫','⼏':'几','⼐':'凵','⼑':'刀','⼒':'力','⼓':'勹','⼔':'匕','⼕':'匚','⼖':'匸','⼗':'十','⼘':'卜','⼙':'卩','⼚':'厂','⼛':'厶','⼜':'又','⼝':'口','⼞':'囗','⼟':'土','⼠':'士','⼡':'夂','⼢':'夊','⼣':'夕','⼤':'大','⼥':'女','⼦':'子','⼧':'宀','⼨':'寸','⼩':'小','⼪':'尢','⼫':'尸','⼬':'屮','⼭':'山','⼮':'巛','⼯':'工','⼰':'己','⼱':'巾','⼲':'干','⼳':'幺','⼴':'广','⼵':'廴','⼶':'廾','⼷':'弋','⼸':'弓','⼹':'彐','⼺':'彡','⼻':'彳','⼼':'心','⼽':'戈','⼾':'戸','⼿':'手','⽀':'支','⽁':'攴','⽂':'文','⽃':'斗','⽄':'斤','⽅':'方','⽆':'无','⽇':'日','⽈':'曰','⽉':'月','⽊':'木','⽋':'欠','⽌':'止','⽍':'歹','⽎':'殳','⽏':'毋','⽐':'比','⽑':'毛','⽒':'氏','⽓':'气','⽔':'水','⽕':'火','⽖':'爪','⽗':'父','⽘':'爻','⽙':'爿','⽚':'片','⽛':'牙','⽜':'牛','⽝':'犬','⽞':'玄','⽟':'玉','⽠':'瓜','⽡':'瓦','⽢':'甘','⽣':'生','⽤':'用','⽥':'田','⽦':'疋','⽧':'疒','⽨':'癶','⽩':'白','⽪':'皮','⽫':'皿','⽬':'目','⽭':'矛','⽮':'矢','⽯':'石','⽰':'示','⽱':'禸','⽲':'禾','⽳':'穴','⽴':'立','⽵':'竹','⽶':'米','⽷':'糸','⽸':'缶','⽹':'网','⽺':'羊','⽻':'羽','⽼':'老','⽽':'而','⽾':'耒','⽿':'耳','⾀':'聿','⾁':'肉','⾂':'臣','⾃':'自','⾄':'至','⾅':'臼','⾆':'舌','⾇':'舛','⾈':'舟','⾉':'艮','⾊':'色','⾋':'艸','⾌':'虍','⾍':'虫','⾎':'血','⾏':'行','⾐':'衣','⾑':'襾','⾒':'見','⾓':'角','⾔':'言','⾕':'谷','⾖':'豆','⾗':'豕','⾘':'豸','⾙':'貝','⾚':'赤','⾛':'走','⾜':'足','⾝':'身','⾞':'車','⾟':'辛','⾠':'辰','⾡':'辵','⾢':'辶','⾣':'酉','⾤':'釆','⾥':'里','⾦':'金','⾧':'長','⾨':'門','⾩':'阜','⾪':'隶','⾫':'隹','⾬':'雨','⾭':'靑','⾮':'非','⾯':'面','⾰':'革','⾱':'韋','⾲':'韭','⾳':'音','⾴':'頁','⾵':'風','⾶':'飛','⾷':'食','⾸':'首','⾹':'香','⾺':'馬','⾻':'骨','⾼':'高','⾽':'髟','⾾':'鬥','⾿':'鬯','⿀':'鬲','⿁':'鬼','⿂':'魚','⿃':'鳥','⿄':'鹵','⿅':'鹿','⿆':'麥','⿇':'麦','⿈':'黄','⿉':'黍','⿊':'黒','⿋':'黹','⿌':'黽','⿍':'鼎','⿎':'鼓','⿏':'鼠','⿐':'鼻','⿑':'齊','⿒':'歯','⿓':'龍','⿔':'亀','⿕':'龠',
+                // 追加：Android等でよく化ける特殊部首
+                '⻑':'長','⺟':'母','⻄':'西','⻯':'竜','⻘':'青','⻩':'黄','⻅':'見','⻆':'角','⻈':'言','⻉':'貝','⻋':'車','⻌':'辶','⻍':'辶','⻎':'辶','⻏':'邑','⻐':'邑','⻔':'門','⻕':'門','⻖':'阜','⻗':'阜','⻙':'韋','⻚':'頁','⻛':'風','⻜':'飛','⻝':'食','⻞':'食','⻟':'食','⻠':'食','⻡':'首','⻢':'馬','⻣':'骨','⻤':'高','⻥':'魚','⻦':'鳥','⻧':'鹵','⻨':'麦','⻪':'黌','⻫':'黽','⻬':'鼎','⻭':'鼓','⻮':'鼠'
+            };
+            
+            for (let k in kangxiMap) {
+                text = text.split(k).join(kangxiMap[k]);
+            }
+            text = text.replace(/‧/g, '・'); 
+            let normalized = text.replace(/\r\n/g, '\n');
+
+            let firstLine = normalized.split('\n')[0].trim();
+            let placeRaceMatch = firstLine.match(/([^\s]+?\d+R)/);
+            let placeRace = placeRaceMatch ? placeRaceMatch[1] : "";
+            let compactName = firstLine
+                .replace(/^([^\s]+?\d+R)/, '') 
+                .replace(/\d{4}年\s*\d+月\d+日.*?\d+回[^\s]+?\d+R\s*/, '') 
+                .replace(/第\d+回\s*/, '') 
+                .trim();
+            let raceTitle = placeRace + " " + compactName;
+            if (raceTitle.trim() === "") raceTitle = "本日のレース";
+
+            let raceCourse = "";
+            let cMatch = normalized.match(/(コース\s*[:：]?\s*[^\n]+|[^\n]+芝・?[^\n]+|[^\n]+ダート[^\n]+)/);
+            if (cMatch && !cMatch[0].includes("父") && !cMatch[0].includes("着")) raceCourse = cMatch[1].trim();
+            
+            if (shouldSave) saveToHistory(raceTitle, text);
+
+            generatedCopyText += `【${raceTitle}】\n${raceCourse}\n◆血統×騎手 俺査定◆\n\n`;
+
+            let html = `
+                <div class="race-header-box">
+                    <div class="race-title">${raceTitle}</div>
+                    <div class="race-course">${raceCourse}</div>
+                </div>
+                <div class="race-board">
+            `;
+
+            const horseRegex = /(?:^|\n)([^\n]*?([0-9]*)([ァ-ヴーA-Za-z・]+)\s*([0-9.]+)\s*\(\s*(\d+)\s*番人[気氣]\s*\))/g;
+            let matches = [];
+            let match;
+            while ((match = horseRegex.exec(normalized)) !== null) {
+                matches.push({ 
+                    index: match.index, 
+                    fullLine: match[1].trim(), 
+                    numPrefix: match[2],
+                    name: match[3], 
+                    odds: match[4], 
+                    pop: match[5] 
+                });
+            }
+
+            if (matches.length === 0) {
+                resultArea.innerHTML = '<p class="error-msg">馬名やオッズが読み取れません。JRAの印刷用ページをコピーしているか確認してください。</p>';
+                return;
+            }
+
+            let chartDataList = [];
+
+            for (let i = 0; i < matches.length; i++) {
+                let start = matches[i].index;
+                let end = (i + 1 < matches.length) ? matches[i+1].index : normalized.length;
+                let block = normalized.substring(start, end);
+                let lines = block.split('\n');
+                
+                let frameStr = "不明", horseStr = "不明", fClass = "frame-unknown";
+                if (matches[i].numPrefix) horseStr = matches[i].numPrefix;
+                
+                let headMatch = matches[i].fullLine.match(/^(\d+)\s+(\d+)\s+/);
+                if (headMatch) {
+                    frameStr = headMatch[1];
+                    horseStr = headMatch[2];
+                } else {
+                    let headM2 = matches[i].fullLine.match(/^(\d+)\s+/);
+                    if (headM2 && horseStr === "不明") horseStr = headM2[1];
+                }
+
+                if (frameStr === "不明" || horseStr === "不明") {
+                    let textBefore = normalized.substring(0, start).trim().split('\n');
+                    for (let k = textBefore.length - 1; k >= Math.max(0, textBefore.length - 4); k--) {
+                        let prevLine = textBefore[k].trim();
+                        let m1 = prevLine.match(/^([1-8])\s+([1-9][0-9]?)$/);
+                        if (m1) { frameStr = m1[1]; if (horseStr === "不明") horseStr = m1[2]; break; }
+                        let m2 = prevLine.match(/^([1-8])$/);
+                        if (m2 && frameStr === "不明") { frameStr = m2[1]; }
+                    }
+                }
+                
+                if (frameStr === "不明" || horseStr === "不明") {
+                    for (let line of lines) {
+                        let l = line.trim();
+                        let m1 = l.match(/^([1-8])\s+([1-9][0-9]?)$/);
+                        if (m1 && frameStr === "不明") { frameStr = m1[1]; horseStr = m1[2]; break; }
+                        let m2 = l.match(/^([1-8])$/);
+                        if (m2 && l.length === 1 && frameStr === "不明") { frameStr = m2[1]; }
+                    }
+                }
+
+                if (frameStr !== "不明") fClass = "frame-" + frameStr;
+                
+                let hName = matches[i].name; let hOdds = matches[i].odds; let hPop = matches[i].pop;
+
+                let rawSire = "不明", rawBms = "不明";
+                for (let line of lines) {
+                    if (line.includes("父")) {
+                        let sMatch = line.match(/父\s*[:：]?\s*([^\n（\(\/]+)/);
+                        if (sMatch) rawSire = sMatch[1].trim();
+                    }
+                    if (line.includes("母")) {
+                        let bMatch = line.match(/母[^\n（\(]*[（\(]([^）\)]+)[）\)]/);
+                        if (bMatch) rawBms = bMatch[1].trim();
+                        else {
+                            let bMatch2 = line.match(/母父?\s*[:：]?\s*([^\n]+)/);
+                            if(bMatch2) rawBms = bMatch2[1].trim();
+                        }
+                    }
+                }
+
+                // 【究極進化】騎手抽出：どこに飛んでいても全ての行を舐めて絶対に探す
+                let rawJockey = "不明";
+                for (let k = 0; k < lines.length; k++) {
+                    let line = lines[k].trim();
+                    
+                    if (line.length === 0) continue;
+                    if (line.includes(hName)) continue; // 馬名と同じ行はスキップ
+                    
+                    // 過去走データやタイム、血統などの不要な行を徹底的に排除
+                    if (line.match(/\d{3}kg/) || line.match(/^計不/) || line.includes("着") || line.includes("3F") || line.match(/\d{4}\.\d{2}\.\d{2}/) || line.match(/\d+-\d+/) || line.includes("タイム")) continue;
+                    if (line.includes("父") || line.includes("母") || line.includes("賞") || line.includes("ステークス") || line.includes("特別") || line.includes("オッズ")) continue;
+
+                    // 記号や数字を消して、純粋な名前（アルファベット・漢字・ひらがな）だけにする
+                    let cleanLine = line.replace(/[^一-龠ぁ-んァ-ヶA-Za-z]/g, '');
+                    if (cleanLine.length < 2) continue;
+
+                    for (let key in loadedJockeyDict) {
+                        let cleanKey = key.replace(/[^一-龠ぁ-んァ-ヶA-Za-z]/g, '');
+                        if (cleanLine.includes(cleanKey) && cleanKey.length >= 2) {
+                            rawJockey = key;
+                            break;
+                        }
+                    }
+                    if (rawJockey !== "不明") break;
+                }
+
+                const defaultData = { val: [3, 3, 3, 3, 3], comment: "データ未査定" };
+
+                let sName = "不明", sData = defaultData;
+                for (let key in loadedSireDict) { if (rawSire.replace(/\s+/g,'').includes(key.replace(/\s+/g,''))) { sName=key; sData = loadedSireDict[key]; break; } }
+                if(sName === "不明" && rawSire !== "不明") sName = rawSire;
+
+                let bName = "不明", bData = defaultData;
+                for (let key in loadedBmsDict) { if (rawBms.replace(/\s+/g,'').includes(key.replace(/\s+/g,''))) { bName=key; bData = loadedBmsDict[key]; break; } }
+                if(bName === "不明" && rawBms !== "不明") bName = rawBms;
+                
+                let jData = defaultData;
+                if (loadedJockeyDict[rawJockey]) {
+                    jData = loadedJockeyDict[rawJockey];
+                } else {
+                    for (let key in loadedJockeyDict) {
+                        if (rawJockey.includes(key.replace(/\s+/g, '')) || key.replace(/\s+/g, '').includes(rawJockey)) {
+                            jData = loadedJockeyDict[key]; 
+                            rawJockey = key; 
+                            break;
+                        }
+                    }
+                }
+
+                let hParams = sData.val.map((v, idx) => Math.round((v * 0.6 + bData.val[idx] * 0.4) * 10) / 10);
+                let jParams = jData.val;
+
+                let hOddsNum = parseFloat(hOdds);
+                let oddsHtml = `<span class="odds-info">${hOdds}倍 (${hPop}番人気)</span>`;
+                if (!isNaN(hOddsNum) && hOddsNum <= 10.0) {
+                    oddsHtml = `<span class="odds-hot">${hOdds}倍 (${hPop}番人気)</span>`;
+                }
+
+                generatedCopyText += `■${frameStr}枠${horseStr}番 ${hName} (${hOdds}倍 / ${hPop}番人気)\n`;
+                generatedCopyText += `父: ${sName} / 母父: ${bName}\n`;
+                generatedCopyText += `鞍上: ${rawJockey}\n`;
+                generatedCopyText += `【馬】${sData.comment} 母父からは「${bData.comment}」\n`;
+                generatedCopyText += `【騎手】${jData.comment}\n`;
+                generatedCopyText += `[査定] 馬: ｽﾋﾟ${hParams[0].toFixed(1)}/ｽﾀ${hParams[1].toFixed(1)}/ﾊﾟﾜ${hParams[2].toFixed(1)}/瞬${hParams[3].toFixed(1)}/操${hParams[4].toFixed(1)}\n`;
+                generatedCopyText += `[査定] 騎: 腕${jParams[0]}/ﾍﾟ${jParams[1]}/馬${jParams[2]}/位${jParams[3]}/仕${jParams[4]}\n\n`;
+
+                html += `
+                <div class="race-row" onclick="toggleAccordion(${i})">
+                    <div class="frame-box ${fClass}">
+                        <span>${frameStr}枠</span><span>${horseStr}番</span>
+                    </div>
+                    <div class="horse-content">
+                        <div class="horse-main-line">
+                            <div class="horse-name-area">
+                                <span class="horse-name">${hName}</span>
+                                ${oddsHtml}
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span class="jockey-tag">${rawJockey}</span>
+                                <span class="row-expand-icon" id="icon-${i}">▼</span>
+                            </div>
+                        </div>
+                        <div class="pedigree-mini">父: ${sName} / 母父: ${bName}</div>
+                    </div>
+                </div>
+                
+                <div id="accordion-${i}" class="accordion-content">
+                    <div class="charts-container">
+                        <div class="chart-box">
+                            <div class="chart-title">血統パラメータ (馬)</div>
+                            <canvas id="horseChart-${i}"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <div class="chart-title">騎手査定パラメータ</div>
+                            <canvas id="jockeyChart-${i}"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="commentary-box">
+                        <span class="tag blue">血統</span> ${sData.comment} 母父からは「${bData.comment}」<br><br>
+                        <span class="tag">騎手</span> <strong>${rawJockey}</strong>：${jData.comment}
+                    </div>
+                </div>`;
+
+                chartDataList.push({ index: i, horseParams: hParams, jockeyParams: jParams });
+            }
+
+            html += '</div>';
+            resultArea.innerHTML = html;
+            document.getElementById('action-btns').style.display = 'flex';
+
+            chartDataList.forEach(data => {
+                drawRadarChart(`horseChart-${data.index}`, '馬の能力', ['スピード', 'スタミナ', 'パワー', '瞬発力', '操縦性'], data.horseParams, 'rgba(52, 152, 219, 0.4)', '#2980b9');
+                drawRadarChart(`jockeyChart-${data.index}`, '騎手の特性', ['腕力', 'ペース', '馬場読', '位置取', '仕掛所'], data.jockeyParams, 'rgba(231, 76, 60, 0.4)', '#c0392b');
+            });
+        }
+
+
+
+        function drawRadarChart(canvasId, label, labels, data, bgColor, borderColor) {
+            let ctx = document.getElementById(canvasId);
+            if(!ctx) return;
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: bgColor,
+                        borderColor: borderColor,
+                        pointBackgroundColor: borderColor,
+                        borderWidth: 1.5,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false, 
+                    scales: { 
+                        r: { 
+                            min: 0, max: 5, 
+                            ticks: { stepSize: 1, display: false },
+                            pointLabels: { font: { size: 10 } }
+                        } 
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
